@@ -26,10 +26,8 @@ const Order: React.FC = () => {
   const [address, setAddress] = useState('');
   const [locating, setLocating] = useState(false);
   const [payment, setPayment] = useState('cash');
-  const [pending, setPending] = useState(false);
   const [showFillAnim, setShowFillAnim] = useState(false);
   const [success, setSuccess] = useState(false);
-  const [redirecting, setRedirecting] = useState(false);
   const navigate = (path: string) => { window.location.hash = path; };
   const [notes, setNotes] = useState('');
   const [filled, setFilled] = useState<'filled' | 'empty'>('filled');
@@ -65,7 +63,6 @@ const Order: React.FC = () => {
       setShowFillAnim(false);
       setSuccess(true);
       setTimeout(() => {
-        setRedirecting(true);
         setTimeout(() => {
           navigate('/track');
         }, 5000);
@@ -373,11 +370,6 @@ const Order: React.FC = () => {
                 <animate attributeName="height" from="0" to="100" dur="1.5s" fill="freeze" />
               </rect>
             </svg>
-          </div>
-        )}
-        {pending && (
-          <div style={{ marginTop: '2rem', color: theme === 'dark' ? '#38bdf8' : '#22c55e', fontWeight: 700, fontSize: '1.1rem', textAlign: 'center' }}>
-            Order Pending...
           </div>
         )}
       </div>
