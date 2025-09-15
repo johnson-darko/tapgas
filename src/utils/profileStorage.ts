@@ -15,6 +15,7 @@ export function getProfile() {
 export type Profile = {
   name: string;
   phone: string;
+  email?: string;
   // add other fields as needed
 };
 export function saveProfile(profile: Profile) {

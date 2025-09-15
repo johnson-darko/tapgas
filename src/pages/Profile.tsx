@@ -12,6 +12,7 @@ const Profile: React.FC = () => {
   const [editPhone, setEditPhone] = useState(profile.phone);
   const orders = getOrders();
   const lastOrder = orders.length > 0 ? orders[0] : null;
+  const isLoggedIn = !!localStorage.getItem('authToken');
   let addressDisplay = 'No address yet';
   if (lastOrder) {
     addressDisplay = lastOrder.location && lastOrder.address.match(/^Lat: (-?\d+\.\d+), Lng: (-?\d+\.\d+)$/)
@@ -74,6 +75,9 @@ const Profile: React.FC = () => {
         ) : (
           <>
             <div style={{ fontWeight: 600, fontSize: '1.1rem', marginBottom: '0.5rem' }}>{profile.name}</div>
+            {isLoggedIn && profile.email && (
+              <div style={{ marginBottom: '0.5rem', color: '#64748b', fontSize: '0.98rem' }}>Email: {profile.email}</div>
+            )}
             <div style={{ marginBottom: '0.5rem' }}>Phone: {profile.phone}</div>
             <div>{addressDisplay}</div>
             <button onClick={() => {
@@ -85,6 +89,30 @@ const Profile: React.FC = () => {
               color: theme === 'dark' ? '#0f172a' : '#fff',
               border: 'none', borderRadius: '2rem', padding: '0.7rem 2rem', fontSize: '1rem', fontWeight: 600, boxShadow: '0 2px 8px rgba(0,0,0,0.08)', cursor: 'pointer', marginTop: '0.5rem'
             }}>Edit Profile</button>
+                {isLoggedIn && (
+                  <button
+                    onClick={() => {
+                      localStorage.removeItem('authToken');
+                      localStorage.removeItem('tapgas_profile');
+                      window.location.href = '/';
+                    }}
+                    style={{
+                      background: '#ef4444',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: '2rem',
+                      padding: '0.7rem 2rem',
+                      fontSize: '1rem',
+                      fontWeight: 600,
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+                      cursor: 'pointer',
+                      margin: '0.5rem auto 1.2rem auto',
+                      display: 'block',
+                    }}
+                  >
+                    Logout
+                  </button>
+                )}
           </>
         )}
       </div>

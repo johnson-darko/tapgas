@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { getProfile, saveProfile } from '../utils/profileStorage';
+import { useTheme } from '../useTheme';
 
 interface LoginModalProps {
   email?: string;
@@ -7,17 +9,24 @@ interface LoginModalProps {
 }
 
 const LoginModal: React.FC<LoginModalProps> = ({ email: initialEmail = '', onSuccess, onClose }) => {
+  const { theme } = useTheme();
   const [step, setStep] = useState<'email' | 'code'>('email');
   const [email, setEmail] = useState(initialEmail);
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  const isGmail = email.trim().toLowerCase().endsWith('@gmail.com');
   const handleSendCode = async () => {
     setLoading(true);
     setError('');
+    if (!isGmail) {
+      setError('Only Gmail addresses (@gmail.com) are allowed.');
+      setLoading(false);
+      return;
+    }
     try {
-  const res = await fetch('/auth/send-code', {
+      const res = await fetch('/auth/send-code', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
@@ -41,7 +50,10 @@ const LoginModal: React.FC<LoginModalProps> = ({ email: initialEmail = '', onSuc
       });
       if (!res.ok) throw new Error('Invalid code');
       const data = await res.json();
-      localStorage.setItem('authToken', 'session'); // Mark as logged in
+  localStorage.setItem('authToken', 'session'); // Mark as logged in
+  // Save email to profile
+  const profile = getProfile();
+  saveProfile({ ...profile, email });
       onSuccess();
     } catch (err: any) {
       setError(err.message || 'Error verifying code');
@@ -69,13 +81,13 @@ const LoginModal: React.FC<LoginModalProps> = ({ email: initialEmail = '', onSuc
             <div style={{ color: '#64748b', fontSize: '0.95rem', marginBottom: '1.2rem' }}>
               Only Gmail addresses (@gmail.com) are accepted for security
             </div>
-            <button onClick={handleSendCode} disabled={loading || !email} style={{ width: '100%', padding: '0.9rem', borderRadius: '2rem', background: '#38bdf8', color: '#fff', fontWeight: 700, fontSize: '1.1rem', border: 'none', cursor: 'pointer' }}>Send Verification Code</button>
+            <button onClick={handleSendCode} disabled={loading || !email || !isGmail} style={{ width: '100%', padding: '0.9rem', borderRadius: '2rem', background: '#38bdf8', color: '#fff', fontWeight: 700, fontSize: '1.1rem', border: 'none', cursor: 'pointer', opacity: (!email || !isGmail) ? 0.6 : 1 }}>Send Verification Code</button>
           </>
         ) : (
           <>
             <label style={{ fontWeight: 600 }}>Enter 6-digit Code</label>
             <input type="text" value={code} onChange={e => setCode(e.target.value)} maxLength={6} style={{ width: '100%', padding: '0.8rem', borderRadius: '0.8rem', border: '1px solid #e5e7eb', marginBottom: '1.2rem', fontSize: '1rem', letterSpacing: '0.3em' }} />
-            <button onClick={handleVerifyCode} disabled={loading || code.length !== 6} style={{ width: '100%', padding: '0.9rem', borderRadius: '2rem', background: '#22c55e', color: '#fff', fontWeight: 700, fontSize: '1.1rem', border: 'none', cursor: 'pointer' }}>Confirm Code</button>
+            <button onClick={handleVerifyCode} disabled={loading || code.length !== 6} style={{ width: '100%', padding: '0.9rem', borderRadius: '2rem', background: theme === 'dark' ? '#fbbf24' : '#38bdf8', color: theme === 'dark' ? '#0f172a' : '#fff', fontWeight: 700, fontSize: '1.1rem', border: 'none', cursor: 'pointer' }}>Confirm Code</button>
           </>
         )}
         {error && <div style={{ color: '#ef4444', marginTop: '1rem', fontWeight: 600 }}>{error}</div>}

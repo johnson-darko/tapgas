@@ -370,8 +370,8 @@ const Order: React.FC = () => {
           <button
             type="submit"
             style={{
-              background: isLoggedIn ? '#22c55e' : (theme === 'dark' ? '#fbbf24' : '#38bdf8'),
-              color: isLoggedIn ? '#fff' : (theme === 'dark' ? '#0f172a' : '#fff'),
+              background: theme === 'dark' ? '#fbbf24' : '#38bdf8',
+              color: theme === 'dark' ? '#0f172a' : '#fff',
               border: 'none', borderRadius: '2rem', padding: '0.9rem 2.5rem', fontSize: '1.1rem', fontWeight: 700, boxShadow: '0 2px 8px rgba(0,0,0,0.08)', cursor: isLoggedIn ? 'pointer' : 'not-allowed', marginTop: '1.2rem', transition: 'background 0.2s', opacity: isLoggedIn ? 1 : 0.7
             }}
             disabled={
