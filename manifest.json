@@ -1,21 +1,39 @@
 {
+  "name": "TapGas",
   "short_name": "TapGas",
-  "name": "TapGas - Uber-for-Gas PWA",
-  "icons": [
-    {
-      "src": "icons/icon-192x192.png",
-      "type": "image/png",
-      "sizes": "192x192"
-    },
-    {
-      "src": "icons/icon-512x512.png",
-      "type": "image/png",
-      "sizes": "512x512"
-    }
-  ],
+  "description": "Order LPG cylinders, track deliveries, and manage your profile. Offline-first PWA.",
   "start_url": ".",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#0f172a",
-  "description": "Order LPG cylinders, track deliveries, and manage your profile. Offline-first PWA."
+  "theme_color": "#3b82f6",
+  "orientation": "portrait-primary",
+  "scope": "https://johnson-darko.github.io/tapgas/",
+  "categories": ["education", "reference", "productivity"],
+  "lang": "en",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "screenshot-mobile.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow"
+    },
+    {
+      "src": "screenshot-desktop.png",
+      "sizes": "1280x800",
+      "type": "image/png",
+      "form_factor": "wide"
+    }
+  ]
 }
