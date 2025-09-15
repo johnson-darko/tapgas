@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import LoginModal from '../components/LoginModal';
 import { saveOrder } from '../utils/orderStorage';
 import { useTheme } from '../useTheme';
 
@@ -16,6 +17,8 @@ const paymentOptions = [
 
 
 const Order: React.FC = () => {
+  const [showLogin, setShowLogin] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(() => !!localStorage.getItem('authToken'));
   const { theme } = useTheme();
   const [orderType, setOrderType] = useState<'gas' | 'cylinder'>('gas');
   const [cylinder, setCylinder] = useState('');
@@ -36,6 +39,10 @@ const Order: React.FC = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isLoggedIn) {
+      setShowLogin(true);
+      return;
+    }
     setShowFillAnim(true);
     setTimeout(() => {
       // Build order object
@@ -59,14 +66,32 @@ const Order: React.FC = () => {
         timeSlot: orderType === 'gas' ? (timeSlot === null ? undefined : timeSlot) : undefined,
         deliveryWindow: orderType === 'gas' ? (deliveryWindow === null ? undefined : deliveryWindow) : undefined,
       };
+      // Save order locally
       saveOrder(newOrder);
-      setShowFillAnim(false);
-      setSuccess(true);
-      setTimeout(() => {
-        setTimeout(() => {
-          navigate('/track');
-        }, 5000);
-      }, 1200);
+      // Save order in the cloud (backend)
+  fetch('/order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(newOrder),
+      })
+        .then(res => {
+          if (!res.ok) throw new Error('Failed to save order in cloud');
+          return res.json();
+        })
+        .catch(err => {
+          // Optionally show error to user
+          console.error('Cloud order save error:', err);
+        })
+        .finally(() => {
+          setShowFillAnim(false);
+          setSuccess(true);
+          setTimeout(() => {
+            setTimeout(() => {
+              navigate('/track');
+            }, 5000);
+          }, 1200);
+        });
     }, 1800);
   };
 
@@ -345,17 +370,31 @@ const Order: React.FC = () => {
           <button
             type="submit"
             style={{
-              background: theme === 'dark' ? '#fbbf24' : '#38bdf8',
-              color: theme === 'dark' ? '#0f172a' : '#fff',
-              border: 'none', borderRadius: '2rem', padding: '0.9rem 2.5rem', fontSize: '1.1rem', fontWeight: 700, boxShadow: '0 2px 8px rgba(0,0,0,0.08)', cursor: 'pointer', marginTop: '1.2rem', transition: 'background 0.2s',
+              background: isLoggedIn ? '#22c55e' : (theme === 'dark' ? '#fbbf24' : '#38bdf8'),
+              color: isLoggedIn ? '#fff' : (theme === 'dark' ? '#0f172a' : '#fff'),
+              border: 'none', borderRadius: '2rem', padding: '0.9rem 2.5rem', fontSize: '1.1rem', fontWeight: 700, boxShadow: '0 2px 8px rgba(0,0,0,0.08)', cursor: isLoggedIn ? 'pointer' : 'not-allowed', marginTop: '1.2rem', transition: 'background 0.2s', opacity: isLoggedIn ? 1 : 0.7
             }}
             disabled={
+              !isLoggedIn ||
               (orderType === 'gas' && (!cylinder || !serviceType || !timeSlot || !deliveryWindow || !address || !payment)) ||
               (orderType === 'cylinder' && (!cylinder || !filled || !address || !payment))
             }
           >
-            Place Order
+            {isLoggedIn ? 'Place Order' : 'Log in to Place Order'}
           </button>
+          {!isLoggedIn && (
+            <div style={{ marginTop: '1rem', color: '#ef4444', fontWeight: 600 }}>
+              Please log in to place your order.
+              <button type="button" onClick={() => setShowLogin(true)} style={{ marginLeft: '1rem', background: '#22c55e', color: '#fff', border: 'none', borderRadius: '1rem', padding: '0.5rem 1.2rem', fontWeight: 600, cursor: 'pointer' }}>Login</button>
+            </div>
+          )}
+        {showLogin && (
+          <LoginModal
+            onSuccess={() => { setIsLoggedIn(true); setShowLogin(false); }}
+            onClose={() => setShowLogin(false)}
+            email={''}
+          />
+        )}
         </form>
         {showFillAnim && (
           <div style={{ width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', marginTop: '2rem', minHeight: '160px' }}>

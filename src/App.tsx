@@ -6,6 +6,7 @@ import Footer from './components/Footer';
 import BottomNav from './components/BottomNav';
 import ScrollToTop from './components/ScrollToTop';
 import Home from './pages/Home';
+import Login from './pages/Login';
 import Order from './pages/Order';
 import TrackOrder from './pages/TrackOrder';
 import History from './pages/History';
@@ -71,6 +72,7 @@ const App: React.FC = () => {
                   <Route path="/driver-track" element={<DriverTrackOrder />} />
                   <Route path="/driver-history" element={<DriverHistory />} />
                   <Route path="/driver-route" element={<DriverRoute />} />
+                  <Route path="/login" element={<Login />} />
                 </Routes>
               </div>
               <Footer />
