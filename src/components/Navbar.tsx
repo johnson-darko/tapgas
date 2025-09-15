@@ -89,7 +89,7 @@ function PromoTooltipIcon({ theme }: PromoTooltipIconProps) {
           <div style={{ marginTop: '0.5rem', fontSize: '0.95rem' }}>
             Limited to the first 500 signups.<br />
             <span style={{ color: theme === 'dark' ? '#fbbf24' : '#ef4444', fontWeight: 700 }}>
-              Your gas order/cylinder arrives as usual.<br />
+              Your LPG Gas order/Cylinder arrives as usual.<br />
               The free indicator will be delivered separately within 2–3 weeks.
             </span>
           </div>

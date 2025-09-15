@@ -27,6 +27,10 @@ const Order: React.FC = () => {
   const [locating, setLocating] = useState(false);
   const [payment, setPayment] = useState('cash');
   const [pending, setPending] = useState(false);
+  const [showFillAnim, setShowFillAnim] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [redirecting, setRedirecting] = useState(false);
+  const navigate = (path: string) => { window.location.hash = path; };
   const [notes, setNotes] = useState('');
   const [filled, setFilled] = useState<'filled' | 'empty'>('filled');
   // Extra fee for pickup
@@ -34,42 +38,107 @@ const Order: React.FC = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Build order object
-    const newOrder = {
-      orderId: Date.now(),
-      customerName: 'User', // Replace with actual user if available
-      address,
-      location: (() => {
-        const match = address.match(/^Lat: (-?\d+\.\d+), Lng: (-?\d+\.\d+)$/);
-        if (match) return { lat: parseFloat(match[1]), lng: parseFloat(match[2]) };
-        return undefined;
-      })(),
-      cylinderType: orderType === 'gas' ? cylinder : `${cylinder} Cylinder (${filled})`,
-      uniqueCode: Math.floor(100000 + Math.random() * 900000),
-      status: 'pending',
-      date: new Date().toISOString().slice(0, 10),
-      amountPaid: pickupFee, // Add pickup fee if applicable
-      notes,
-      payment,
-      serviceType: orderType === 'gas' ? (serviceType === null ? undefined : serviceType) : undefined,
-            timeSlot: orderType === 'gas' ? (timeSlot === null ? undefined : timeSlot) : undefined,
-            deliveryWindow: orderType === 'gas' ? (deliveryWindow === null ? undefined : deliveryWindow) : undefined,
-    };
-    saveOrder(newOrder);
-    setPending(true);
-    setTimeout(() => setPending(false), 2500);
+    setShowFillAnim(true);
+    setTimeout(() => {
+      // Build order object
+      const newOrder = {
+        orderId: Date.now(),
+        customerName: 'User', // Replace with actual user if available
+        address,
+        location: (() => {
+          const match = address.match(/^Lat: (-?\d+\.\d+), Lng: (-?\d+\.\d+)$/);
+          if (match) return { lat: parseFloat(match[1]), lng: parseFloat(match[2]) };
+          return undefined;
+        })(),
+        cylinderType: orderType === 'gas' ? cylinder : `${cylinder} Cylinder (${filled})`,
+        uniqueCode: Math.floor(100000 + Math.random() * 900000),
+        status: 'pending',
+        date: new Date().toISOString().slice(0, 10),
+        amountPaid: pickupFee, // Add pickup fee if applicable
+        notes,
+        payment,
+        serviceType: orderType === 'gas' ? (serviceType === null ? undefined : serviceType) : undefined,
+        timeSlot: orderType === 'gas' ? (timeSlot === null ? undefined : timeSlot) : undefined,
+        deliveryWindow: orderType === 'gas' ? (deliveryWindow === null ? undefined : deliveryWindow) : undefined,
+      };
+      saveOrder(newOrder);
+      setShowFillAnim(false);
+      setSuccess(true);
+      setTimeout(() => {
+        setRedirecting(true);
+        setTimeout(() => {
+          navigate('/track');
+        }, 5000);
+      }, 1200);
+    }, 1800);
   };
 
   return (
     <div style={{
-
       minHeight: '100vh',
       background: theme === 'dark' ? '#18181b' : '#fff',
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
       width: '100%',
+      position: 'relative',
+      overflow: 'hidden',
     }}>
+      {/* Cylinder animation overlay */}
+      {showFillAnim && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
+          background: theme === 'dark' ? 'rgba(24,24,27,0.98)' : 'rgba(248,250,252,0.98)',
+          zIndex: 9999,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}>
+          <svg width="120" height="240" viewBox="0 0 80 160" style={{ display: 'block' }}>
+            {/* Cylinder outline */}
+            <rect x="20" y="20" width="40" height="120" rx="20" fill={theme === 'dark' ? '#334155' : '#e5e7eb'} stroke={theme === 'dark' ? '#38bdf8' : '#0f172a'} strokeWidth="3" />
+            {/* Cylinder top */}
+            <rect x="30" y="10" width="20" height="20" rx="8" fill={theme === 'dark' ? '#38bdf8' : '#0f172a'} />
+            {/* Animated gas fill */}
+            <rect x="22" y="140" width="36" height="0" rx="18" fill={theme === 'dark' ? '#fbbf24' : '#38bdf8'}>
+              <animate attributeName="y" from="140" to="40" dur="1.5s" fill="freeze" />
+              <animate attributeName="height" from="0" to="100" dur="1.5s" fill="freeze" />
+            </rect>
+          </svg>
+          <div style={{ marginTop: '2rem', color: theme === 'dark' ? '#fbbf24' : '#0f172a', fontWeight: 700, fontSize: '1.3rem', textAlign: 'center' }}>
+            Placing your order...
+          </div>
+        </div>
+      )}
+      {/* Success message overlay */}
+      {success && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
+          background: theme === 'dark' ? 'rgba(24,24,27,0.98)' : 'rgba(248,250,252,0.98)',
+          zIndex: 9999,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}>
+          <svg width="120" height="240" viewBox="0 0 80 160" style={{ display: 'block' }}>
+            <rect x="20" y="20" width="40" height="120" rx="20" fill={theme === 'dark' ? '#334155' : '#e5e7eb'} stroke={theme === 'dark' ? '#38bdf8' : '#0f172a'} strokeWidth="3" />
+            <rect x="30" y="10" width="20" height="20" rx="8" fill={theme === 'dark' ? '#38bdf8' : '#0f172a'} />
+            <rect x="22" y="40" width="36" height="100" rx="18" fill={theme === 'dark' ? '#fbbf24' : '#38bdf8'} />
+            <text x="40" y="100" textAnchor="middle" fontSize="1.2rem" fill={theme === 'dark' ? '#fbbf24' : '#0f172a'} fontWeight="bold">✔</text>
+          </svg>
+          <div style={{ marginTop: '2rem', color: theme === 'dark' ? '#fbbf24' : '#0f172a', fontWeight: 700, fontSize: '1.3rem', textAlign: 'center' }}>
+            Order placed successfully!<br />Redirecting to Track Order...
+          </div>
+        </div>
+      )}
+      {/* Main order form UI */}
       <div style={{
         maxWidth: '420px',
         width: '100%',
@@ -80,7 +149,7 @@ const Order: React.FC = () => {
           : '0 4px 24px rgba(0,0,0,0.08)',
         padding: '2.5rem 1.5rem 2rem 1.5rem',
         marginTop: '1rem',
-        display: 'flex',
+        display: success || showFillAnim ? 'none' : 'flex',
         flexDirection: 'column',
         alignItems: 'center',
       }}>
@@ -99,7 +168,7 @@ const Order: React.FC = () => {
             border: 'none', borderRadius: '1rem', padding: '0.7rem 1.5rem', fontWeight: 600, cursor: 'pointer', fontSize: '1rem', transition: 'background 0.2s',
           }}>Buy Gas Cylinder</button>
         </div>
-        <form onSubmit={handleSubmit} style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
+  <form onSubmit={handleSubmit} style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
           <div>
             <label style={{ fontWeight: 600, color: theme === 'dark' ? '#38bdf8' : '#334155' }}>Cylinder Size</label>
             <select value={cylinder} onChange={e => setCylinder(e.target.value)} required style={{ width: '100%', padding: '0.7rem', borderRadius: '0.8rem', border: '1px solid #e5e7eb', marginTop: '0.5rem', fontSize: '1rem' }}>
@@ -276,14 +345,36 @@ const Order: React.FC = () => {
               {paymentOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
             </select>
           </div>
-          <button type="submit" style={{
-            background: theme === 'dark' ? '#fbbf24' : '#38bdf8',
-            color: theme === 'dark' ? '#0f172a' : '#fff',
-            border: 'none', borderRadius: '2rem', padding: '0.9rem 2.5rem', fontSize: '1.1rem', fontWeight: 700, boxShadow: '0 2px 8px rgba(0,0,0,0.08)', cursor: 'pointer', marginTop: '1.2rem', transition: 'background 0.2s',
-          }} disabled={orderType === 'gas' && (!serviceType || !timeSlot || !deliveryWindow)}>
+          <button
+            type="submit"
+            style={{
+              background: theme === 'dark' ? '#fbbf24' : '#38bdf8',
+              color: theme === 'dark' ? '#0f172a' : '#fff',
+              border: 'none', borderRadius: '2rem', padding: '0.9rem 2.5rem', fontSize: '1.1rem', fontWeight: 700, boxShadow: '0 2px 8px rgba(0,0,0,0.08)', cursor: 'pointer', marginTop: '1.2rem', transition: 'background 0.2s',
+            }}
+            disabled={
+              (orderType === 'gas' && (!cylinder || !serviceType || !timeSlot || !deliveryWindow || !address || !payment)) ||
+              (orderType === 'cylinder' && (!cylinder || !filled || !address || !payment))
+            }
+          >
             Place Order
           </button>
         </form>
+        {showFillAnim && (
+          <div style={{ width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', marginTop: '2rem', minHeight: '160px' }}>
+            <svg width="80" height="160" viewBox="0 0 80 160" style={{ display: 'block' }}>
+              {/* Cylinder outline */}
+              <rect x="20" y="20" width="40" height="120" rx="20" fill={theme === 'dark' ? '#334155' : '#e5e7eb'} stroke={theme === 'dark' ? '#38bdf8' : '#0f172a'} strokeWidth="3" />
+              {/* Cylinder top */}
+              <rect x="30" y="10" width="20" height="20" rx="8" fill={theme === 'dark' ? '#38bdf8' : '#0f172a'} />
+              {/* Animated gas fill */}
+              <rect x="22" y="140" width="36" height="0" rx="18" fill={theme === 'dark' ? '#fbbf24' : '#38bdf8'}>
+                <animate attributeName="y" from="140" to="40" dur="1.5s" fill="freeze" />
+                <animate attributeName="height" from="0" to="100" dur="1.5s" fill="freeze" />
+              </rect>
+            </svg>
+          </div>
+        )}
         {pending && (
           <div style={{ marginTop: '2rem', color: theme === 'dark' ? '#38bdf8' : '#22c55e', fontWeight: 700, fontSize: '1.1rem', textAlign: 'center' }}>
             Order Pending...
