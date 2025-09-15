@@ -116,7 +116,7 @@ const Navbar: React.FC = () => {
         throw new Error('Offline');
       }
     } catch {
-      setOfflineMsg('No internet connection. You are currently offline. Please connect to the internet to refresh and get the latest updates.');
+      setOfflineMsg('Please connect to the internet and refresh for latest updates.');
       setTimeout(() => setOfflineMsg(null), 4000);
     }
   };
@@ -196,9 +196,11 @@ const Navbar: React.FC = () => {
           width: '100%',
           background: '#f87171',
           color: '#fff',
-          padding: '0.5rem',
+          padding: '0.35rem 0.5rem',
           textAlign: 'center',
-          fontWeight: 600,
+          fontWeight: 500,
+          fontSize: '0.85rem',
+          borderRadius: '0.5rem',
           zIndex: 2100,
         }}>
           {offlineMsg}
