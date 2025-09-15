@@ -7,5 +7,5 @@ export default defineConfig({
   server: {
     port: 5020,
   },
-  base: '/gasman/', // e.g. /TapGas/
+  base: '/tapgas/', // Must match your repo name!
 });
