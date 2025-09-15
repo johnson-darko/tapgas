@@ -1,33 +1,55 @@
 // PromoTooltipIcon component
-function PromoTooltipIcon({ theme }) {
+interface PromoTooltipIconProps {
+  theme: string;
+}
+
+function PromoTooltipIcon({ theme }: PromoTooltipIconProps) {
   const [showTooltip, setShowTooltip] = React.useState(false);
   return (
     <span style={{ position: 'relative' }}>
-      <span
-        role="img"
-        aria-label="gift"
-        style={{
-          fontSize: '1.5rem',
-          cursor: 'pointer',
-          marginRight: '0.5rem',
-          color: theme === 'dark' ? '#fbbf24' : '#0ea5e9',
-          display: 'inline-block',
-          animation: showTooltip ? 'bounceGift 0.7s' : 'bounceGiftIdle 2s infinite',
-        }}
-        onClick={() => setShowTooltip((v) => !v)}
-        onMouseEnter={() => setShowTooltip(true)}
-      >🎁</span>
+      <span style={{ position: 'relative', display: 'inline-block' }}>
+        <span
+          role="img"
+          aria-label="gift"
+          style={{
+            fontSize: '2.1rem',
+            cursor: 'pointer',
+            marginRight: '0.5rem',
+            color: theme === 'dark' ? '#fbbf24' : '#0ea5e9',
+            display: 'inline-block',
+            animation: showTooltip ? 'bounceGift 0.7s' : 'bounceGiftIdle 2s infinite',
+            transition: 'font-size 0.2s',
+          }}
+          onClick={() => setShowTooltip((v) => !v)}
+          onMouseEnter={() => setShowTooltip(true)}
+        >🎁</span>
+        {/* Badge */}
+        <span style={{
+          position: 'absolute',
+          top: '-0.3rem',
+          right: '-0.2rem',
+          background: '#ef4444',
+          color: '#fff',
+          borderRadius: '50%',
+          fontSize: '0.85rem',
+          fontWeight: 700,
+          padding: '0.13rem 0.45rem',
+          boxShadow: '0 1px 4px rgba(0,0,0,0.12)',
+          zIndex: 2,
+          border: theme === 'dark' ? '2px solid #23272f' : '2px solid #fff',
+        }}>1</span>
+      </span>
       <style>{`
         @keyframes bounceGift {
           0% { transform: scale(1) translateY(0); }
-          30% { transform: scale(1.2) translateY(-6px); }
-          50% { transform: scale(0.95) translateY(2px); }
-          70% { transform: scale(1.05) translateY(-2px); }
+          30% { transform: scale(1.35) translateY(-10px); }
+          50% { transform: scale(1.05) translateY(3px); }
+          70% { transform: scale(1.15) translateY(-3px); }
           100% { transform: scale(1) translateY(0); }
         }
         @keyframes bounceGiftIdle {
           0%, 100% { transform: scale(1) translateY(0); }
-          50% { transform: scale(1.08) translateY(-3px); }
+          50% { transform: scale(1.12) translateY(-4px); }
         }
       `}</style>
       {showTooltip && (
@@ -46,7 +68,23 @@ function PromoTooltipIcon({ theme }) {
           zIndex: 10001,
           textAlign: 'left',
         }}>
-          <div style={{ fontWeight: 700, marginBottom: '0.5rem' }}>Launch Promo</div>
+          <button
+            onClick={() => setShowTooltip(false)}
+            style={{
+              position: 'absolute',
+              top: '0.5rem',
+              right: '0.7rem',
+              background: 'none',
+              border: 'none',
+              color: theme === 'dark' ? '#fbbf24' : '#0f172a',
+              fontSize: '1.2rem',
+              cursor: 'pointer',
+              fontWeight: 700,
+              zIndex: 10002,
+            }}
+            aria-label="Close promo"
+          >✕</button>
+          <div style={{ fontWeight: 700, marginBottom: '0.5rem', paddingRight: '1.5rem' }}>Launch Promo</div>
           <div>Get a <span style={{ color: '#0ea5e9' }}>FREE Gas Level Indicator</span> with your first LPG refill or cylinder purchase!</div>
           <div style={{ marginTop: '0.5rem', fontSize: '0.95rem' }}>
             Limited to the first 500 signups.<br />

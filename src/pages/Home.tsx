@@ -72,7 +72,7 @@ import OrderCard from '../components/OrderCard';
 import { useNavigate } from 'react-router-dom';
 
 const Home: React.FC = () => {
-  const [showPromo, setShowPromo] = useState(true);
+
   const { theme } = useTheme();
   const orders = getOrders();
   // ...existing code...
