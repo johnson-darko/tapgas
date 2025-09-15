@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar';
@@ -23,7 +22,7 @@ import { useTheme } from './useTheme';
 const App: React.FC = () => {
   const { theme } = useTheme();
   return (
-    <Router>
+    <Router basename="/tapgas/">
       <ScrollToTop />
       <>
         <div style={{
