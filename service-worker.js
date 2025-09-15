@@ -1,11 +1,10 @@
-
 const CACHE_NAME = 'tapgas-cache-v1';
 const urlsToCache = [
-  '/',
-  '/index.html',
-  '/manifest.json',
-  '/vite.svg',
-  // Add more assets and routes as needed
+  '/tapgas/',
+  '/tapgas/index.html',
+  '/tapgas/manifest.json',
+  '/tapgas/vite.svg',
+  // Add other assets as needed
 ];
 
 self.addEventListener('install', event => {
