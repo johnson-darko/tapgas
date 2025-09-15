@@ -1,5 +1,6 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import SplashScreen from './components/SplashScreen';
+import { HashRouter as Router, Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import BottomNav from './components/BottomNav';
@@ -21,8 +22,23 @@ import { useTheme } from './useTheme';
 
 const App: React.FC = () => {
   const { theme } = useTheme();
+  const [showSplash, setShowSplash] = useState(true);
+
+  useEffect(() => {
+    // If no hash, redirect to hash route
+    if (window.location.pathname.endsWith('/tapgas/') && !window.location.hash) {
+      window.location.replace(window.location.pathname + '#/');
+    }
+    const timer = setTimeout(() => setShowSplash(false), 2000); // 2 seconds
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (showSplash) {
+    return <SplashScreen />;
+  }
+
   return (
-    <Router basename="/tapgas/">
+    <Router>
       <ScrollToTop />
       <>
         <div style={{
