@@ -1,0 +1,95 @@
+
+import React, { useState } from 'react';
+import { useTheme } from '../useTheme';
+import { getOrders } from '../utils/orderStorage';
+import { getProfile, saveProfile } from '../utils/profileStorage';
+
+const Profile: React.FC = () => {
+  const { theme } = useTheme();
+  const [profile, setProfile] = useState(getProfile());
+  const [editing, setEditing] = useState(false);
+  const [editName, setEditName] = useState(profile.name);
+  const [editPhone, setEditPhone] = useState(profile.phone);
+  const orders = getOrders();
+  const lastOrder = orders.length > 0 ? orders[0] : null;
+  let addressDisplay = 'No address yet';
+  if (lastOrder) {
+    addressDisplay = lastOrder.location && lastOrder.address.match(/^Lat: (-?\d+\.\d+), Lng: (-?\d+\.\d+)$/)
+      ? `Address Coordinates: ${lastOrder.location.lat},${lastOrder.location.lng}`
+      : `Address: ${lastOrder.address}`;
+  }
+  return (
+    <div style={{
+      padding: '5rem 0.5rem 1.5rem 0.5rem',
+      color: theme === 'dark' ? '#f1f5f9' : '#0f172a',
+      textAlign: 'center',
+    }}>
+      <h2 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '1.2rem' }}>
+        User Profile
+      </h2>
+      <div style={{
+        background: theme === 'dark' ? '#334155' : '#fff',
+        borderRadius: '1rem',
+        boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
+        padding: '1.2rem',
+        maxWidth: '350px',
+        margin: '0 auto',
+        marginBottom: '2rem',
+      }}>
+        {editing ? (
+          <form onSubmit={e => {
+            e.preventDefault();
+            const updated = { name: editName, phone: editPhone };
+            saveProfile(updated);
+            setProfile(updated);
+            setEditing(false);
+          }} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <input
+              type="text"
+              value={editName}
+              onChange={e => setEditName(e.target.value)}
+              placeholder="Name"
+              style={{ padding: '0.7rem', borderRadius: '0.8rem', border: '1px solid #e5e7eb', fontSize: '1rem' }}
+              required
+            />
+            <input
+              type="text"
+              value={editPhone}
+              onChange={e => setEditPhone(e.target.value)}
+              placeholder="Phone"
+              style={{ padding: '0.7rem', borderRadius: '0.8rem', border: '1px solid #e5e7eb', fontSize: '1rem' }}
+              required
+            />
+            <button type="submit" style={{
+              background: theme === 'dark' ? '#38bdf8' : '#0f172a',
+              color: theme === 'dark' ? '#0f172a' : '#fff',
+              border: 'none', borderRadius: '2rem', padding: '0.7rem 2rem', fontSize: '1rem', fontWeight: 600, boxShadow: '0 2px 8px rgba(0,0,0,0.08)', cursor: 'pointer', marginTop: '0.5rem'
+            }}>Save</button>
+            <button type="button" onClick={() => setEditing(false)} style={{
+              background: theme === 'dark' ? '#64748b' : '#e5e7eb',
+              color: theme === 'dark' ? '#fbbf24' : '#334155',
+              border: 'none', borderRadius: '2rem', padding: '0.7rem 2rem', fontSize: '1rem', fontWeight: 600, boxShadow: '0 2px 8px rgba(0,0,0,0.08)', cursor: 'pointer', marginTop: '0.5rem'
+            }}>Cancel</button>
+          </form>
+        ) : (
+          <>
+            <div style={{ fontWeight: 600, fontSize: '1.1rem', marginBottom: '0.5rem' }}>{profile.name}</div>
+            <div style={{ marginBottom: '0.5rem' }}>Phone: {profile.phone}</div>
+            <div>{addressDisplay}</div>
+            <button onClick={() => {
+              setEditName(profile.name);
+              setEditPhone(profile.phone);
+              setEditing(true);
+            }} style={{
+              background: theme === 'dark' ? '#38bdf8' : '#0f172a',
+              color: theme === 'dark' ? '#0f172a' : '#fff',
+              border: 'none', borderRadius: '2rem', padding: '0.7rem 2rem', fontSize: '1rem', fontWeight: 600, boxShadow: '0 2px 8px rgba(0,0,0,0.08)', cursor: 'pointer', marginTop: '0.5rem'
+            }}>Edit Profile</button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default Profile;
