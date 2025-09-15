@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tapgas-cache-v1';
+const CACHE_NAME = 'tapgas-cache-v2'; // Increment for each deploy
 const urlsToCache = [
   '/tapgas/',
   '/tapgas/index.html',
@@ -8,6 +8,7 @@ const urlsToCache = [
 ];
 
 self.addEventListener('install', event => {
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => {
       return cache.addAll(urlsToCache);
