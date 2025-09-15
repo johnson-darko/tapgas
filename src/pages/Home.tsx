@@ -80,64 +80,6 @@ const Home: React.FC = () => {
   const navigate = useNavigate();
   return (
     <>
-      {showPromo && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          width: '100vw',
-          height: '100vh',
-          background: 'rgba(0,0,0,0.18)',
-          zIndex: 9999,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}>
-          <div style={{
-            background: theme === 'dark' ? '#23272f' : '#fff',
-            borderRadius: '1.2rem',
-            boxShadow: theme === 'dark' ? '0 4px 24px rgba(56,189,248,0.10)' : '0 4px 24px rgba(0,0,0,0.08)',
-            padding: '2.5rem 1.5rem 2rem 1.5rem',
-            maxWidth: '350px',
-            width: '90vw',
-            textAlign: 'center',
-            color: theme === 'dark' ? '#fbbf24' : '#0f172a',
-            fontWeight: 600,
-            fontSize: '1.1rem',
-            position: 'relative',
-          }}>
-            <span role="img" aria-label="gift" style={{ fontSize: '2.2rem', display: 'block', marginBottom: '1rem' }}>🎁</span>
-            <div style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: '0.7rem' }}>
-              Launch Promo: Get a <span style={{ color: '#0ea5e9' }}>FREE Gas Level Indicator</span> with your first LPG Gas Refill order <b>or if you buy Gas Cylinder from us</b>!
-            </div>
-            <div style={{ fontSize: '1rem', marginBottom: '0.7rem' }}>
-              Limited to first 500 signups.<br />
-              <span style={{ color: theme === 'dark' ? '#fbbf24' : '#ef4444', fontWeight: 700 }}>Note: The FREE Gas Level Indicator is delivered separately in 2–3 weeks.<br />Your actual LPG Refill Gas order and Cylinder purchase are delivered normally, not delayed.</span>
-            </div>
-            {/* Removed customer acquisition tool bullet points as requested */}
-            <button
-              onClick={() => setShowPromo(false)}
-              style={{
-                position: 'absolute',
-                top: '1rem',
-                right: '1rem',
-                background: theme === 'dark' ? '#334155' : '#e5e7eb',
-                color: theme === 'dark' ? '#fbbf24' : '#0f172a',
-                border: 'none',
-                borderRadius: '50%',
-                width: '2.2rem',
-                height: '2.2rem',
-                fontSize: '1.3rem',
-                fontWeight: 700,
-                cursor: 'pointer',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
-              }}
-              aria-label="Close Promo"
-            >×</button>
-          </div>
-        </div>
-      )}
-   
       <div
         style={{
           minHeight: '100vh',
@@ -205,9 +147,9 @@ const Home: React.FC = () => {
           >Track Order</button>
         </div>
         <div style={{ margin: '2rem 0', width: '100%' }}>
-          <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '1rem', color: theme === 'dark' ? '#fbbf24' : '#0f172a' }}>
-            Last Order Overview
-          </h2>
+                  <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '1rem', color: theme === 'dark' ? '#fbbf24' : '#0f172a', textAlign: 'center' }}>
+                    Lastest Order Overview
+                  </h2>
             {activeOrders.length > 0 ? (
               <div>
                  {activeOrders.map((order: Order) => {
@@ -218,10 +160,6 @@ const Home: React.FC = () => {
                       {/* Show new workflow details for LPG Gas Refill */}
                       {isOrderGas && (
                         <div style={{
-                          background: theme === 'dark' ? '#23272f' : '#f1f5f9',
-                          color: theme === 'dark' ? '#38bdf8' : '#0f172a',
-                          borderRadius: '0.8rem',
-                          padding: '0.7rem 1.2rem',
                           margin: '0.5rem 0 1rem 0',
                           fontSize: '0.98rem',
                           fontWeight: 500,
