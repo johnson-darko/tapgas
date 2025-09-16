@@ -7,28 +7,36 @@ import { getOrders } from '../utils/orderStorage';
 import type { Order } from '../utils/orderStorage';
 
 const DriverRoute: React.FC = () => {
-  // For testing: inject dummy orders
-  const injectDummy = () => {
-    // Dynamically import to avoid SSR/localStorage issues
-    import('../utils/orderStorage').then(mod => {
-      mod.injectDummyOrders();
-      window.location.reload();
-    });
-  };
   const { theme } = useTheme();
   const [view, setView] = useState<'map' | 'list'>('map');
   // Only show not delivered orders
-  const activeOrders = getOrders().filter((o: Order) => o.status !== 'delivered');
+  const activeOrders = getOrders().filter((o: Order) => o.status !== 'delivered' && !!o.orderId);
   // Group orders by address (area/neighborhood)
   const groupedOrders: { [address: string]: Order[] } = {};
   activeOrders.forEach((order: Order) => {
+    // Defensive: ensure all required fields for OrderCard are present if used
+    order.customerName = order.customerName ?? '';
+    order.address = order.address ?? '';
+    order.cylinderType = order.cylinderType ?? '';
+    order.uniqueCode = typeof order.uniqueCode === 'number' ? order.uniqueCode : (typeof order.uniqueCode === 'string' ? parseInt(order.uniqueCode, 10) || 0 : 0);
+    order.status = order.status ?? '';
+    order.date = order.date ?? '';
+    order.amountPaid = order.amountPaid ?? 0;
+    order.location = {
+      lat: typeof order.location?.lat === 'number' ? order.location.lat : 0,
+      lng: typeof order.location?.lng === 'number' ? order.location.lng : 0,
+    };
     const key = order.address.trim();
     if (!groupedOrders[key]) groupedOrders[key] = [];
     groupedOrders[key].push(order);
   });
   // Sort each group by orderId (oldest first)
   Object.keys(groupedOrders).forEach(address => {
-    groupedOrders[address].sort((a, b) => a.orderId - b.orderId);
+    groupedOrders[address].sort((a, b) => {
+      const aId = typeof a.orderId === 'number' ? a.orderId : (typeof a.orderId === 'string' ? parseInt(a.orderId, 10) || 0 : 0);
+      const bId = typeof b.orderId === 'number' ? b.orderId : (typeof b.orderId === 'string' ? parseInt(b.orderId, 10) || 0 : 0);
+      return aId - bId;
+    });
   });
   const groupKeys = Object.keys(groupedOrders);
 
@@ -40,7 +48,9 @@ const DriverRoute: React.FC = () => {
   });
 
   // Center map on first stop or default Lagos
-  const firstLoc = allStops[0]?.order.location || { lat: 6.5244, lng: 3.3792 };
+  const firstLoc = allStops[0]?.order.location && typeof allStops[0].order.location.lat === 'number' && typeof allStops[0].order.location.lng === 'number'
+    ? allStops[0].order.location
+    : { lat: 6.5244, lng: 3.3792 };
 
   // Next stop: first in allStops
   // ...existing code...
@@ -74,20 +84,6 @@ const DriverRoute: React.FC = () => {
         </h2>
         <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
           <button
-            onClick={injectDummy}
-            style={{
-              padding: '0.6rem 1.2rem',
-              borderRadius: '0.7rem',
-              border: 'none',
-              background: theme === 'dark' ? '#38bdf8' : '#0ea5e9',
-              color: '#fff',
-              fontWeight: 600,
-              fontSize: '1rem',
-              cursor: 'pointer',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
-            }}
-          >Inject Dummy Data</button>
-          <button
             onClick={() => setView(view === 'map' ? 'list' : 'map')}
             style={{
               padding: '0.6rem 1.2rem',
@@ -105,7 +101,10 @@ const DriverRoute: React.FC = () => {
         {groupKeys.length > 0 ? (
           view === 'map' ? (
             <div style={{ width: '100%', height: '400px', marginBottom: '2rem', borderRadius: '1rem', overflow: 'hidden' }}>
-              <MapContainer center={[firstLoc.lat, firstLoc.lng]} zoom={13} style={{ width: '100%', height: '100%' }}>
+              <MapContainer center={[
+                typeof firstLoc.lat === 'number' ? firstLoc.lat : 6.5244,
+                typeof firstLoc.lng === 'number' ? firstLoc.lng : 3.3792
+              ]} zoom={13} style={{ width: '100%', height: '100%' }}>
                 <TileLayer
                   url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                   attribution="&copy; OpenStreetMap contributors"
@@ -126,7 +125,7 @@ const DriverRoute: React.FC = () => {
                     return (
                       <CircleMarker
                         key={order.orderId}
-                        center={[order.location.lat, order.location.lng]}
+                        center={order.location && typeof order.location.lat === 'number' && typeof order.location.lng === 'number' ? [order.location.lat, order.location.lng] : [6.5244, 3.3792]}
                         radius={16}
                         pathOptions={{ color, fillColor: color, fillOpacity: 0.7 }}
                       >
@@ -176,7 +175,7 @@ const DriverRoute: React.FC = () => {
                     return (
                       <Marker
                         key={order.orderId}
-                        position={[order.location.lat, order.location.lng]}
+                        position={order.location && typeof order.location.lat === 'number' && typeof order.location.lng === 'number' ? [order.location.lat, order.location.lng] : [6.5244, 3.3792]}
                         icon={L.divIcon({
                           className: 'custom-marker',
                           html: `<div style="background:${color};color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1rem;border:2px solid #fff;">${idx + 1}</div>`

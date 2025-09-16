@@ -57,7 +57,7 @@ const TrackOrder: React.FC = () => {
             <option value="oldest">Oldest</option>
           </select>
         </div>
-        {sortedOrders.map(order => {
+  {sortedOrders.filter(order => typeof order.orderId === 'string' || typeof order.orderId === 'number').map(order => {
           // Find current stage index
           let statusIndex = 0;
           if (order.status === 'pending') statusIndex = 0;

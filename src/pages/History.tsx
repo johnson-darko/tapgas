@@ -74,7 +74,7 @@ const History: React.FC = () => {
             You have no failed deliveries.<br />Failed deliveries will appear here with driver comments.
           </div>
         ) : (
-           failedOrders.map((order: Order) => (
+           failedOrders.filter(order => !!order.orderId).map((order: Order) => (
             <div key={order.orderId} style={{ width: '100%' }}>
               <OrderCard order={order} />
               {order.failedNote && (

@@ -8,9 +8,9 @@ const DriverOrders: React.FC = () => {
   const { theme } = useTheme();
   // For MVP, show all not delivered orders as 'assigned' to driver
   const [orders, setOrders] = useState<Order[]>(getOrders());
-  const assignedOrders: Order[] = orders.filter((o: Order) => o.status !== 'delivered');
+  const assignedOrders: Order[] = orders.filter((o: Order) => o.status !== 'delivered' && !!o.orderId);
 
-  const updateOrderStatus = (orderId: number, status: string, failNote?: string) => {
+  const updateOrderStatus = (orderId: string | number, status: string, failNote?: string) => {
     const updatedOrders = orders.map(order =>
       order.orderId === orderId
         ? { ...order, status, failedNote: failNote }
@@ -21,7 +21,7 @@ const DriverOrders: React.FC = () => {
   };
 
   // Modal for failed delivery note
-  const [failModalOrderId, setFailModalOrderId] = useState<number | null>(null);
+  const [failModalOrderId, setFailModalOrderId] = useState<string | number | null>(null);
   const [failNote, setFailNote] = useState('');
 
   const [showInfo, setShowInfo] = useState(false);
@@ -60,6 +60,11 @@ const DriverOrders: React.FC = () => {
             style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.5rem', color: theme === 'dark' ? '#38bdf8' : '#0f172a', marginLeft: '0.5rem' }}
             title="Driver Help"
           >❓</button>
+          <button
+            onClick={() => { localStorage.removeItem('tapgas_orders'); setOrders([]); }}
+            style={{ marginLeft: '1rem', background: '#ef4444', color: '#fff', border: 'none', borderRadius: '0.8rem', padding: '0.5rem 1.2rem', fontWeight: 600, cursor: 'pointer', fontSize: '0.95rem' }}
+            title="Clear All Orders"
+          >Clear Local Orders</button>
         </div>
         {showInfo && (
           <div style={{
@@ -92,9 +97,23 @@ const DriverOrders: React.FC = () => {
           assignedOrders.map((order: Order) => {
             // Only show multi-step for 'Order LPG Gas Refill' (not Buy Cylinder)
             const isOrderGas = !order.cylinderType.includes('Cylinder');
+            // Provide fallbacks for required fields
+            const safeOrder = {
+              ...order,
+              customerName: order.customerName ?? 'N/A',
+              address: order.address ?? 'N/A',
+              cylinderType: order.cylinderType ?? 'N/A',
+              uniqueCode: typeof order.uniqueCode === 'number' ? order.uniqueCode : Number(order.uniqueCode) || 0,
+              status: order.status ?? 'pending',
+              date: order.date ?? '',
+              amountPaid: order.amountPaid ?? 0,
+              location: order.location && typeof order.location.lat === 'number' && typeof order.location.lng === 'number'
+                ? { lat: order.location.lat, lng: order.location.lng }
+                : { lat: 0, lng: 0 },
+            };
             return (
               <div key={order.orderId} style={{ width: '100%' }}>
-                <OrderCard order={order} />
+                <OrderCard order={safeOrder} />
                 {/* Show new workflow details for LPG Gas Refill */}
                 {isOrderGas && (
                   <div style={{
@@ -114,7 +133,7 @@ const DriverOrders: React.FC = () => {
                       order.deliveryWindow === 'nextMorning' ? 'Next Morning (5:00–9:00 AM)' :
                       order.deliveryWindow === 'nextEvening' ? 'Next Evening (4:30–8:00 PM)' : '-'
                     }</div>
-                    {order.pickupFee ? <div><b>Pickup Fee:</b> ₦{order.pickupFee}</div> : null}
+                    {order.pickupFee ? <div><b>Pickup Fee:</b> {order.pickupFee}</div> : null}
                   </div>
                 )}
                 {order.notes && (
@@ -134,9 +153,9 @@ const DriverOrders: React.FC = () => {
                 )}
                 {isOrderGas && (
                   <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', marginBottom: '1.5rem' }}>
-                    {order.status === 'pending' && (
+                    {order.status === 'pending' && order.orderId && (
                       <button
-                        onClick={() => updateOrderStatus(order.orderId, 'pickedup')}
+                        onClick={() => updateOrderStatus(order.orderId!, 'pickedup')}
                         style={{
                           background: theme === 'dark' ? '#fbbf24' : '#38bdf8',
                           color: theme === 'dark' ? '#0f172a' : '#fff',
@@ -150,9 +169,9 @@ const DriverOrders: React.FC = () => {
                         }}
                       >Mark Picked Up</button>
                     )}
-                    {order.status === 'pickedup' && (
+                    {order.status === 'pickedup' && order.orderId && (
                       <button
-                        onClick={() => updateOrderStatus(order.orderId, 'onway')}
+                        onClick={() => updateOrderStatus(order.orderId!, 'onway')}
                         style={{
                           background: theme === 'dark' ? '#38bdf8' : '#fbbf24',
                           color: theme === 'dark' ? '#0f172a' : '#fff',
@@ -166,10 +185,10 @@ const DriverOrders: React.FC = () => {
                         }}
                       >Start Delivery</button>
                     )}
-                    {order.status === 'onway' && (
+                    {order.status === 'onway' && order.orderId && (
                       <>
                         <button
-                          onClick={() => updateOrderStatus(order.orderId, 'delivered')}
+                          onClick={() => updateOrderStatus(order.orderId!, 'delivered')}
                           style={{
                             background: theme === 'dark' ? '#22c55e' : '#fbbf24',
                             color: theme === 'dark' ? '#0f172a' : '#fff',
@@ -183,7 +202,7 @@ const DriverOrders: React.FC = () => {
                           }}
                         >Mark Delivered</button>
                         <button
-                          onClick={() => { setFailModalOrderId(order.orderId); setFailNote(''); }}
+                          onClick={() => { setFailModalOrderId(order.orderId as string | number); setFailNote(''); }}
                           style={{
                             background: theme === 'dark' ? '#ef4444' : '#cd1b1bff',
                             color: theme === 'dark' ? '#0f172a' : '#fff',
@@ -280,7 +299,7 @@ const DriverOrders: React.FC = () => {
                 {/* For Buy Cylinder, keep old logic (if needed) */}
                 {!isOrderGas && (
                   <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', marginBottom: '1.5rem' }}>
-                    {order.status === 'pending' && (
+                    {order.status === 'pending' && order.orderId && (
                       <button
                         onClick={() => updateOrderStatus(order.orderId, 'onway')}
                         style={{
@@ -296,7 +315,7 @@ const DriverOrders: React.FC = () => {
                         }}
                       >Start Delivery</button>
                     )}
-                    {order.status === 'onway' && (
+                    {order.status === 'onway' && order.orderId && (
                       <button
                         onClick={() => updateOrderStatus(order.orderId, 'delivered')}
                         style={{

@@ -1,7 +1,8 @@
 
 import React, { useState } from 'react';
 import LoginModal from '../components/LoginModal';
-import { saveOrder } from '../utils/orderStorage';
+import { saveOrder, getOrders } from '../utils/orderStorage';
+import type { Order } from '../utils/orderStorage';
 import { useTheme } from '../useTheme';
 
 const cylinderOptions = [
@@ -34,8 +35,6 @@ const Order: React.FC = () => {
   const navigate = (path: string) => { window.location.hash = path; };
   const [notes, setNotes] = useState('');
   const [filled, setFilled] = useState<'filled' | 'empty'>('filled');
-  // Extra fee for pickup
-  const pickupFee = serviceType === 'pickup' ? 500 : 0; // Example fee, can be dynamic
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,56 +42,80 @@ const Order: React.FC = () => {
       setShowLogin(true);
       return;
     }
+    // Enforce required fields for LPG Gas Refill
+    if (orderType === 'gas') {
+      if (!serviceType) {
+        alert('Please select a Service Type.');
+        return;
+      }
+      if (!timeSlot) {
+        alert('Please select a Time Slot.');
+        return;
+      }
+      if (!deliveryWindow) {
+        alert('Please select a Delivery Window.');
+        return;
+      }
+    }
     setShowFillAnim(true);
-    setTimeout(() => {
-      // Build order object
-      const newOrder = {
-        orderId: Date.now(),
-        customerName: 'User', // Replace with actual user if available
-        address,
-        location: (() => {
-          const match = address.match(/^Lat: (-?\d+\.\d+), Lng: (-?\d+\.\d+)$/);
-          if (match) return { lat: parseFloat(match[1]), lng: parseFloat(match[2]) };
-          return undefined;
-        })(),
-        cylinderType: orderType === 'gas' ? cylinder : `${cylinder} Cylinder (${filled})`,
-        uniqueCode: Math.floor(100000 + Math.random() * 900000),
-        status: 'pending',
-        date: new Date().toISOString().slice(0, 10),
-        amountPaid: pickupFee, // Add pickup fee if applicable
-        notes,
-        payment,
-        serviceType: orderType === 'gas' ? (serviceType === null ? undefined : serviceType) : undefined,
-        timeSlot: orderType === 'gas' ? (timeSlot === null ? undefined : timeSlot) : undefined,
-        deliveryWindow: orderType === 'gas' ? (deliveryWindow === null ? undefined : deliveryWindow) : undefined,
-      };
-      // Save order locally
-      saveOrder(newOrder);
-      // Save order in the cloud (backend)
-  fetch('/order', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify(newOrder),
-      })
-        .then(res => {
-          if (!res.ok) throw new Error('Failed to save order in cloud');
-          return res.json();
-        })
-        .catch(err => {
-          // Optionally show error to user
-          console.error('Cloud order save error:', err);
-        })
-        .finally(() => {
-          setShowFillAnim(false);
-          setSuccess(true);
+    // Build order object (no orderId)
+    const localUniqueCode = Math.floor(100000 + Math.random() * 900000);
+    const newOrder = {
+      customerName: 'User', // Replace with actual user if available
+      address,
+      location: (() => {
+        const match = address.match(/^Lat: (-?\d+\.\d+), Lng: (-?\d+\.\d+)$/);
+        if (match) return { lat: parseFloat(match[1]), lng: parseFloat(match[2]) };
+        return undefined;
+      })(),
+      cylinderType: orderType === 'gas' ? cylinder : `${cylinder} Cylinder (${filled})`,
+      uniqueCode: localUniqueCode,
+      status: 'pending',
+      date: new Date().toISOString().slice(0, 10),
+      amountPaid: 0,
+      notes,
+      payment,
+      serviceType: orderType === 'gas' ? (serviceType ?? '') : '',
+      timeSlot: orderType === 'gas' ? (timeSlot ?? '') : '',
+      deliveryWindow: orderType === 'gas' ? (deliveryWindow ?? '') : '',
+    };
+
+    fetch('/order', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(newOrder),
+    })
+      .then(async res => {
+        if (!res.ok) throw new Error('Failed to save order in cloud');
+        const data = await res.json();
+        if (data && data.success && data.order) {
+          console.log('Backend order response:', data.order);
+          // Remove any local temp order with the same uniqueCode
+          const orders = getOrders().filter((o: Order) => {
+            // Remove any order with the same uniqueCode or a numeric orderId (temp)
+            if (o.uniqueCode === localUniqueCode) return false;
+            if (typeof o.orderId === 'number') return false;
+            return true;
+          });
+          localStorage.setItem('tapgas_orders', JSON.stringify(orders));
+          console.log('Saving order to local storage:', data.order);
+          // Save backend order (with backend orderId) locally
+          saveOrder(data.order);
+        }
+        setShowFillAnim(false);
+        setSuccess(true);
+        setTimeout(() => {
           setTimeout(() => {
-            setTimeout(() => {
-              navigate('/track');
-            }, 5000);
-          }, 1200);
-        });
-    }, 1800);
+            navigate('/track');
+          }, 5000);
+        }, 1200);
+      })
+      .catch(err => {
+        setShowFillAnim(false);
+        // Optionally show error to user
+        console.error('Cloud order save error:', err);
+      });
   };
 
   return (
@@ -163,7 +186,6 @@ const Order: React.FC = () => {
       {/* Main order form UI */}
       <div style={{
         maxWidth: '420px',
-        width: '100%',
         background: theme === 'dark' ? '#23272f' : '#fff',
         borderRadius: '1.2rem',
         boxShadow: theme === 'dark'
@@ -232,7 +254,7 @@ const Order: React.FC = () => {
                       background: serviceType === 'pickup' ? (theme === 'dark' ? '#38bdf8' : '#0f172a') : (theme === 'dark' ? '#23272f' : '#e5e7eb'),
                       color: serviceType === 'pickup' ? (theme === 'dark' ? '#0f172a' : '#fff') : (theme === 'dark' ? '#fbbf24' : '#334155'),
                       border: 'none', borderRadius: '1rem', padding: '0.7rem 1.5rem', fontWeight: 600, cursor: 'pointer', fontSize: '1rem', transition: 'background 0.2s',
-                    }}>Pickup from Home {pickupFee ? `(+₦${pickupFee})` : ''}</button>
+                    }}>Pickup from Home</button>
                 </div>
               </div>
               {/* Step 2: Time slot selection */}
@@ -297,7 +319,7 @@ const Order: React.FC = () => {
                 value={address}
                 readOnly
                 required
-                placeholder="Click 'Use My Location'"
+                placeholder="Click 'My Location'"
                 style={{ flex: 1, padding: '0.7rem', borderRadius: '0.8rem', border: '1px solid #e5e7eb', fontSize: '1rem', background: '#f1f5f9', color: '#64748b' }}
               />
               <button
@@ -327,7 +349,7 @@ const Order: React.FC = () => {
                   border: 'none', borderRadius: '0.8rem', padding: '0.7rem 1rem', fontWeight: 600, cursor: 'pointer', fontSize: '0.95rem', transition: 'background 0.2s', minWidth: '40px'
                 }}
                 disabled={locating}
-              >{locating ? 'Locating...' : 'Use My Location'}</button>
+              >{locating ? 'Locating...' : 'My Location'}</button>
             </div>
             {/* Satellite map view if address is coordinates (Google Maps) */}
             {/^Lat: (-?\d+\.\d+), Lng: (-?\d+\.\d+)$/.test(address) && (() => {

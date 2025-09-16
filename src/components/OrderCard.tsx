@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { QRCodeCanvas } from 'qrcode.react';
 
 interface OrderCardProps {
   order: {
-    orderId: number;
+    orderId?: string | number;
+    id?: number;
     customerName: string;
     address: string;
     cylinderType: string;
@@ -15,7 +16,12 @@ interface OrderCardProps {
       lat: number;
       lng: number;
     };
+    serviceType?: string;
+    timeSlot?: string;
+    deliveryWindow?: string;
   };
+  onCheckUpdate?: () => void;
+  showCheckUpdate?: boolean;
 }
 
 import { useTheme } from '../useTheme';
@@ -26,8 +32,9 @@ const statusColors: Record<string, string> = {
   onway: '#38bdf8',
 };
 
-const OrderCard: React.FC<OrderCardProps> = ({ order }) => {
+const OrderCard: React.FC<OrderCardProps> = ({ order, onCheckUpdate, showCheckUpdate }) => {
   const { theme } = useTheme();
+  const [showInfo, setShowInfo] = useState(false);
   return (
     <div style={{
       borderRadius: '1.5rem',
@@ -80,7 +87,77 @@ const OrderCard: React.FC<OrderCardProps> = ({ order }) => {
             )}
         </div>
         <div style={{ fontSize: '0.98rem' }}>Date: <span style={{ fontWeight: 600 }}>{order.date}</span></div>
-        <div style={{ fontSize: '0.98rem' }}>Amount Paid: <span style={{ fontWeight: 700, color: theme === 'dark' ? '#fbbf24' : '#22c55e' }}>GH₵{order.amountPaid}</span></div>
+        <div style={{ fontSize: '0.98rem' }}>
+          Amount Paid: <span style={{ fontWeight: 700, color: theme === 'dark' ? '#fbbf24' : '#22c55e' }}>Not yet</span>
+        </div>
+        {/* Show info icon only for LPG Gas Refill orders */}
+        {order.cylinderType && !order.cylinderType.toLowerCase().includes('cylinder') && (
+          <div style={{ marginTop: '0.2rem', display: 'flex', justifyContent: 'center' }}>
+            <span
+              title="Order information"
+              style={{ cursor: 'pointer', fontSize: '1.1em', color: theme === 'dark' ? '#fbbf24' : '#0f172a', verticalAlign: 'middle' }}
+              onClick={() => setShowInfo(true)}
+            >ℹ️</span>
+          </div>
+        )}
+        {showInfo && (
+          <div
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              width: '100vw',
+              height: '100vh',
+              background: 'rgba(0,0,0,0.35)',
+              zIndex: 9999,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+            onClick={() => setShowInfo(false)}
+          >
+            <div
+              style={{
+                background: theme === 'dark' ? '#23232b' : '#fff',
+                color: theme === 'dark' ? '#fbbf24' : '#0f172a',
+                borderRadius: '1.2rem',
+                boxShadow: '0 4px 24px rgba(0,0,0,0.18)',
+                padding: '2rem 2.5rem',
+                minWidth: '260px',
+                maxWidth: '90vw',
+                fontSize: '1.05rem',
+                position: 'relative',
+              }}
+              onClick={e => e.stopPropagation()}
+            >
+              <div style={{ fontWeight: 700, fontSize: '1.15rem', marginBottom: '1.2rem', textAlign: 'center' }}>Order Details</div>
+              <div><b>Service Type:</b> {order.serviceType === 'kiosk' ? 'Drop off at Kiosk' : order.serviceType === 'pickup' ? 'Pickup from Home' : '-'}</div>
+              <div><b>Time Slot:</b> {order.timeSlot === 'morning' ? 'Morning (4:30–9:00 AM)' : order.timeSlot === 'evening' ? 'Evening (4:30–8:00 PM)' : '-'}</div>
+              <div><b>Delivery Window:</b> {
+                order.deliveryWindow === 'sameDayEvening' ? 'Same Day Evening (4:30–7:00 PM)' :
+                order.deliveryWindow === 'nextMorning' ? 'Next Morning (5:00–9:00 AM)' :
+                order.deliveryWindow === 'nextEvening' ? 'Next Evening (4:30–8:00 PM)' : '-'
+              }</div>
+              <button
+                style={{
+                  marginTop: '1.5rem',
+                  background: theme === 'dark' ? '#38bdf8' : '#0f172a',
+                  color: theme === 'dark' ? '#0f172a' : '#fff',
+                  border: 'none',
+                  borderRadius: '0.7rem',
+                  padding: '0.5rem 1.2rem',
+                  fontWeight: 600,
+                  fontSize: '1rem',
+                  cursor: 'pointer',
+                  display: 'block',
+                  marginLeft: 'auto',
+                  marginRight: 'auto',
+                }}
+                onClick={() => setShowInfo(false)}
+              >Close</button>
+            </div>
+          </div>
+        )}
       </div>
       {/* Perforated divider */}
       <div style={{
@@ -117,10 +194,13 @@ const OrderCard: React.FC<OrderCardProps> = ({ order }) => {
           <span role="img" aria-label="code">🔑</span> {order.uniqueCode}
         </div>
         <div style={{ marginBottom: '0.7rem' }}>
-          <QRCodeCanvas value={order.orderId.toString()} size={80} />
+          <QRCodeCanvas value={(order.orderId ?? '').toString()} size={80} />
           <div style={{ fontSize: '0.8rem', color: theme === 'dark' ? '#64748b' : '#334155', marginTop: '0.3rem' }}>Scan to confirm pickup</div>
         </div>
         <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.5rem',
           color: statusColors[order.status] || (theme === 'dark' ? '#64748b' : '#334155'),
           fontWeight: 800,
           fontSize: '1.05rem',
@@ -128,9 +208,26 @@ const OrderCard: React.FC<OrderCardProps> = ({ order }) => {
           marginBottom: '0.3rem',
         }}>
           {order.status}
+          {typeof onCheckUpdate === 'function' && showCheckUpdate && (
+            <button
+              style={{
+                marginLeft: '0.5rem',
+                fontSize: '0.85rem',
+                fontWeight: 600,
+                background: '#38bdf8',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '0.7rem',
+                padding: '0.2rem 0.8rem',
+                cursor: 'pointer',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
+              }}
+              onClick={e => { e.stopPropagation(); onCheckUpdate(); }}
+            >Check Updates</button>
+          )}
         </div>
         <div style={{ fontSize: '0.9rem', color: theme === 'dark' ? '#38bdf8' : '#64748b', fontWeight: 500 }}>
-          Order ID: {order.orderId}
+          Order ID: {order.orderId ?? 'N/A'}
         </div>
       </div>
     </div>

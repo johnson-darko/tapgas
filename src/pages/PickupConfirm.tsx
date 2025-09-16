@@ -20,7 +20,7 @@ const PickupConfirm: React.FC = () => {
       setFoundOrder(null);
       return;
     }
-    const order = getOrders().find((o: Order) => o.uniqueCode === codeNum && o.status !== 'delivered');
+  const order = getOrders().find((o: Order) => o.uniqueCode === codeNum && o.status !== 'delivered' && !!o.orderId);
     if (!order) {
       setError('No active order found for this code.');
       setFoundOrder(null);

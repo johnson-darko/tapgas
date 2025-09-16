@@ -58,7 +58,7 @@ const DriverHistory: React.FC = () => {
         </div>
         {view === 'delivered' ? (
           deliveredOrders.length > 0 ? (
-            deliveredOrders.map((order: Order) => (
+            deliveredOrders.filter(order => !!order.orderId).map((order: Order) => (
               <OrderCard key={order.orderId} order={order} />
             ))
           ) : (
@@ -80,7 +80,7 @@ const DriverHistory: React.FC = () => {
           )
         ) : (
           failedOrders.length > 0 ? (
-            failedOrders.map((order: Order) => (
+            failedOrders.filter(order => !!order.orderId).map((order: Order) => (
               <div key={order.orderId} style={{ width: '100%' }}>
                 <OrderCard order={order} />
                 {order.failedNote && (

@@ -66,7 +66,8 @@ const AnimatedOrderStory: React.FC<AnimatedOrderStoryProps> = ({ theme }) => {
 };
 
 import { useTheme } from '../useTheme';
-import { getOrders } from '../utils/orderStorage';
+import { getOrders, saveOrder } from '../utils/orderStorage';
+import { getProfile } from '../utils/profileStorage';
 // ...existing code...
 import OrderCard from '../components/OrderCard';
 import { useNavigate } from 'react-router-dom';
@@ -74,9 +75,37 @@ import { useNavigate } from 'react-router-dom';
 const Home: React.FC = () => {
 
   const { theme } = useTheme();
-  const orders = getOrders();
-  // ...existing code...
+  const [orders, setOrders] = useState<Order[]>(getOrders());
+  useEffect(() => {
+    setOrders(getOrders());
+  }, []);
   const activeOrders = orders.filter((o: Order) => o.status !== 'delivered');
+  const profile = getProfile();
+
+  async function checkOrderUpdate(order: Order) {
+    if (!profile.email || !order.uniqueCode) {
+      alert('Missing email or unique code.');
+      return;
+    }
+    try {
+      const res = await fetch(`/order/check`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: profile.email, uniqueCode: order.uniqueCode })
+      });
+      if (!res.ok) throw new Error('Failed to fetch order update');
+      const data = await res.json();
+      if (data && data.success && data.order) {
+        saveOrder(data.order); // will normalize orderId
+        setOrders(getOrders()); // update state, no reload
+      } else {
+        alert('Order not found or error.');
+      }
+    } catch (err) {
+      alert('Error checking order update.');
+      console.error(err);
+    }
+  }
   const navigate = useNavigate();
   return (
     <>
@@ -110,7 +139,7 @@ const Home: React.FC = () => {
         <p style={{ fontSize: '1.15rem', marginBottom: '2rem', color: theme === 'dark' ? '#f1f5f9' : '#334155', fontWeight: 500 }}>
           Order LPG, Track, Deliver.<br />Fast, Secure, Reliable.
         </p>
-        <div style={{ display: 'flex', gap: '1rem', marginBottom: '2.2rem', width: '100%', justifyContent: 'center' }}>
+  <div style={{ display: 'flex', gap: '1rem', marginBottom: '2.2rem', width: '100%', justifyContent: 'center' }}>
           <button
             style={{
               background: theme === 'dark' ? '#38bdf8' : '#0f172a',
@@ -146,35 +175,57 @@ const Home: React.FC = () => {
             onClick={() => navigate('/track')}
           >Track Order</button>
         </div>
+        <button
+          onClick={() => { localStorage.removeItem('tapgas_orders'); window.location.reload(); }}
+          style={{
+            marginBottom: '1.5rem',
+            background: '#ef4444',
+            color: '#fff',
+            border: 'none',
+            borderRadius: '0.8rem',
+            padding: '0.5rem 1.2rem',
+            fontWeight: 600,
+            cursor: 'pointer',
+            fontSize: '0.95rem',
+            width: '100%',
+            maxWidth: '320px',
+            display: 'block',
+            marginLeft: 'auto',
+            marginRight: 'auto',
+          }}
+        >Clear Local Orders</button>
         <div style={{ margin: '2rem 0', width: '100%' }}>
                   <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '1rem', color: theme === 'dark' ? '#fbbf24' : '#0f172a', textAlign: 'center' }}>
                     Lastest Order Overview
                   </h2>
             {activeOrders.length > 0 ? (
               <div>
-                 {activeOrders.map((order: Order) => {
-                  const isOrderGas = !order.cylinderType.includes('Cylinder');
+                 {activeOrders.filter(order => typeof order.orderId === 'string' || typeof order.orderId === 'number' || !order.orderId).map((order: Order) => {
+                  // Always treat cylinderType as a string for .includes
+                  const cylinderTypeStr = typeof order.cylinderType === 'string' ? order.cylinderType : '';
+                  const isOrderGas = !cylinderTypeStr.includes('Cylinder');
                   return (
-                    <div key={order.orderId} style={{ width: '100%' }}>
-                      <OrderCard order={order} />
+                    <div key={order.orderId ?? order.uniqueCode} style={{ width: '100%' }}>
+                      <OrderCard
+                        order={{
+                          ...order,
+                          customerName: order.customerName ?? '',
+                          address: order.address ?? '',
+                          cylinderType: cylinderTypeStr,
+                          uniqueCode: typeof order.uniqueCode === 'number' ? order.uniqueCode : (typeof order.uniqueCode === 'string' ? parseInt(order.uniqueCode, 10) || 0 : 0),
+                          status: order.status ?? '',
+                          date: order.date ?? '',
+                          amountPaid: order.amountPaid ?? 0,
+                          location: {
+                            lat: typeof order.location?.lat === 'number' ? order.location.lat : 0,
+                            lng: typeof order.location?.lng === 'number' ? order.location.lng : 0,
+                          },
+                        }}
+                        onCheckUpdate={() => checkOrderUpdate(order)}
+                        showCheckUpdate={order.status !== 'delivered'}
+                      />
                       {/* Show new workflow details for LPG Gas Refill */}
-                      {isOrderGas && (
-                        <div style={{
-                          margin: '0.5rem 0 1rem 0',
-                          fontSize: '0.98rem',
-                          fontWeight: 500,
-                          boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-                        }}>
-                          <div><b>Service Type:</b> {order.serviceType === 'kiosk' ? 'Drop off at Kiosk' : order.serviceType === 'pickup' ? 'Pickup from Home' : '-'}</div>
-                          <div><b>Time Slot:</b> {order.timeSlot === 'morning' ? 'Morning (4:30–9:00 AM)' : order.timeSlot === 'evening' ? 'Evening (4:30–8:00 PM)' : '-'}</div>
-                          <div><b>Delivery Window:</b> {
-                            order.deliveryWindow === 'sameDayEvening' ? 'Same Day Evening (4:30–7:00 PM)' :
-                            order.deliveryWindow === 'nextMorning' ? 'Next Morning (5:00–9:00 AM)' :
-                            order.deliveryWindow === 'nextEvening' ? 'Next Evening (4:30–8:00 PM)' : '-'
-                          }</div>
-                          {order.pickupFee ? <div><b>Pickup Fee:</b> ₦{order.pickupFee}</div> : null}
-                        </div>
-                      )}
+                      {/* Details for LPG Gas Refill now shown in info popup modal */}
                     </div>
                   );
                 })}

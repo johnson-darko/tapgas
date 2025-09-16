@@ -1,6 +1,7 @@
 import React from 'react';
 import { useTheme } from '../useTheme';
-import { getOrders } from '../utils/orderStorage';
+import { getOrders, ORDER_STORAGE_KEY } from '../utils/orderStorage';
+import { syncOrdersFromBackend } from '../utils/orderStorage';
 import type { Order } from '../utils/orderStorage';
 import OrderCard from '../components/OrderCard';
 
@@ -9,20 +10,31 @@ const Admin: React.FC = () => {
   const [view, setView] = React.useState<'all' | 'delivered' | 'failed' | 'analytics'>('all');
   const [sort, setSort] = React.useState<'newest' | 'oldest'>('newest');
   const [search, setSearch] = React.useState('');
-  const orders: Order[] = getOrders();
+  const [syncing, setSyncing] = React.useState(false);
+  const [syncMsg, setSyncMsg] = React.useState<string | null>(null);
+  const [orders, setOrders] = React.useState<Order[]>(getOrders());
+
+  // Keep orders in sync with localStorage
+  React.useEffect(() => {
+    const handler = () => setOrders(getOrders());
+    window.addEventListener('storage', handler);
+    return () => window.removeEventListener('storage', handler);
+  }, []);
   let filteredOrders: Order[] = orders;
   if (view === 'delivered') filteredOrders = orders.filter((o: Order) => o.status === 'delivered');
   if (view === 'failed') filteredOrders = orders.filter((o: Order) => o.status === 'failed');
   if (search.trim()) {
     filteredOrders = filteredOrders.filter((o: Order) =>
-      o.customerName.toLowerCase().includes(search.toLowerCase()) ||
-      o.address.toLowerCase().includes(search.toLowerCase()) ||
+  (o.customerName ?? '').toLowerCase().includes(search.toLowerCase()) ||
+  (o.address ?? '').toLowerCase().includes(search.toLowerCase()) ||
       (o.cylinderType && o.cylinderType.toLowerCase().includes(search.toLowerCase())) ||
       (o.notes && o.notes.toLowerCase().includes(search.toLowerCase()))
     );
   }
-  if (sort === 'newest') filteredOrders = [...filteredOrders].sort((a: Order, b: Order) => b.orderId - a.orderId);
-  if (sort === 'oldest') filteredOrders = [...filteredOrders].sort((a: Order, b: Order) => a.orderId - b.orderId);
+  // Only keep orders with orderId
+  filteredOrders = filteredOrders.filter((o: Order) => !!o.orderId);
+  if (sort === 'newest') filteredOrders = [...filteredOrders].sort((a: Order, b: Order) => (b.orderId as string).localeCompare(a.orderId as string));
+  if (sort === 'oldest') filteredOrders = [...filteredOrders].sort((a: Order, b: Order) => (a.orderId as string).localeCompare(b.orderId as string));
 
   return (
     <div style={{
@@ -33,6 +45,62 @@ const Admin: React.FC = () => {
       <h2 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '1.2rem' }}>
         Admin Panel
       </h2>
+      <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', marginBottom: '1.2rem', flexWrap: 'wrap' }}>
+        <button
+          onClick={async () => {
+            setSyncing(true);
+            setSyncMsg(null);
+            const result = await syncOrdersFromBackend();
+            setOrders(getOrders());
+            if (result.success) {
+              setSyncMsg(`Orders synced! (${result.count} total)`);
+            } else {
+              setSyncMsg(result.error || 'Sync failed');
+            }
+            setSyncing(false);
+          }}
+          style={{
+            background: theme === 'dark' ? '#38bdf8' : '#0ea5e9',
+            color: '#fff',
+            border: 'none',
+            borderRadius: '1rem',
+            padding: '0.7rem 1.5rem',
+            fontWeight: 700,
+            fontSize: '1rem',
+            cursor: syncing ? 'not-allowed' : 'pointer',
+            opacity: syncing ? 0.7 : 1,
+          }}
+          disabled={syncing}
+          title="Sync all orders from cloud"
+        >
+          {syncing ? 'Syncing...' : 'Sync Orders'}
+        </button>
+        <button
+          onClick={() => {
+            localStorage.removeItem(ORDER_STORAGE_KEY);
+            setOrders([]);
+            setSyncMsg('All local orders cleared!');
+          }}
+          style={{
+            background: theme === 'dark' ? '#ef4444' : '#f87171',
+            color: '#fff',
+            border: 'none',
+            borderRadius: '1rem',
+            padding: '0.7rem 1.5rem',
+            fontWeight: 700,
+            fontSize: '1rem',
+            cursor: 'pointer',
+          }}
+          title="Clear all local orders"
+        >
+          Clear Orders
+        </button>
+      </div>
+      {syncMsg && (
+        <div style={{ margin: '0.5rem auto 1rem auto', color: theme === 'dark' ? '#fbbf24' : '#ef4444', fontWeight: 600 }}>
+          {syncMsg}
+        </div>
+      )}
       <div style={{ marginBottom: '1.5rem', fontSize: '1.1rem', color: theme === 'dark' ? '#fbbf24' : '#38bdf8' }}>
         View and manage all orders
       </div>
@@ -52,7 +120,22 @@ const Admin: React.FC = () => {
       {view !== 'analytics' ? (
         filteredOrders.length > 0 ? (
           filteredOrders.map((order: Order) => (
-            <OrderCard key={order.orderId} order={order} />
+            <OrderCard
+              key={order.orderId}
+              order={{
+                ...order,
+                customerName: order.customerName ?? 'N/A',
+                address: order.address ?? 'N/A',
+                cylinderType: order.cylinderType ?? 'N/A',
+                uniqueCode: typeof order.uniqueCode === 'number' ? order.uniqueCode : Number(order.uniqueCode) || 0,
+                status: order.status ?? 'pending',
+                date: order.date ?? '',
+                amountPaid: order.amountPaid ?? 0,
+                location: order.location && typeof order.location.lat === 'number' && typeof order.location.lng === 'number'
+                  ? { lat: order.location.lat, lng: order.location.lng }
+                  : { lat: 0, lng: 0 },
+              }}
+            />
           ))
         ) : (
           <div style={{
