@@ -43,18 +43,19 @@ const LoginModal: React.FC<LoginModalProps> = ({ email: initialEmail = '', onSuc
     setLoading(true);
     setError('');
     try {
-  const res = await fetch('/auth/verify-code', {
+      const res = await fetch('/auth/verify-code', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, code }),
       });
       if (!res.ok) throw new Error('Invalid code');
       const data = await res.json();
-  localStorage.setItem('authToken', 'session'); // Mark as logged in
-  // Save email to profile
-  const profile = getProfile();
-  saveProfile({ ...profile, email });
-      onSuccess();
+      localStorage.setItem('authToken', 'session'); // Mark as logged in
+      // Save email and role to profile
+      const profile = getProfile();
+      saveProfile({ ...profile, email, role: data.user.role || 'customer' });
+  onSuccess();
+  window.location.reload(); // Reload to update profile/nav with new role
     } catch (err: any) {
       setError(err.message || 'Error verifying code');
     }

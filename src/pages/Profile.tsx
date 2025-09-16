@@ -38,12 +38,24 @@ const Profile: React.FC = () => {
         marginBottom: '2rem',
       }}>
         {editing ? (
-          <form onSubmit={e => {
+          <form onSubmit={async e => {
             e.preventDefault();
-            const updated = { name: editName, phone: editPhone };
-            saveProfile(updated);
-            setProfile(updated);
-            setEditing(false);
+            // Sync to backend first
+            try {
+              const res = await fetch('http://localhost:5020/profile', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ name: editName, phone_number: editPhone }),
+              });
+              if (!res.ok) throw new Error('Failed to update profile in cloud');
+              const updated = { ...profile, name: editName, phone: editPhone };
+              saveProfile(updated);
+              setProfile(updated);
+              setEditing(false);
+            } catch (err) {
+              alert('Could not update profile in cloud. Please try again.');
+            }
           }} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <input
               type="text"
@@ -75,6 +87,11 @@ const Profile: React.FC = () => {
         ) : (
           <>
             <div style={{ fontWeight: 600, fontSize: '1.1rem', marginBottom: '0.5rem' }}>{profile.name}</div>
+            {profile.role && (
+              <div style={{ marginBottom: '0.5rem', color: '#f59e42', fontSize: '0.98rem', fontWeight: 700 }}>
+                Role: {profile.role}
+              </div>
+            )}
             {isLoggedIn && profile.email && (
               <div style={{ marginBottom: '0.5rem', color: '#64748b', fontSize: '0.98rem' }}>Email: {profile.email}</div>
             )}

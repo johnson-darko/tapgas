@@ -1,31 +1,44 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useTheme } from '../useTheme';
+import { getProfile } from '../utils/profileStorage';
 
-const navItems = [
+const customerNav = [
   { label: 'Home', path: '/', icon: '🏠' },
   { label: 'Order', path: '/order', icon: '🛒' },
   { label: 'Track', path: '/track', icon: '📦' },
   { label: 'History', path: '/history', icon: '🕑' },
   { label: 'Profile', path: '/profile', icon: '👤' },
-  { label: 'Admin', path: '/admin', icon: '🗂️' },
+];
+const driverNav = [
   { label: 'Driver', path: '/driver', icon: '🚚' },
   { label: 'Pickup', path: '/pickup', icon: '🔑' },
   { label: 'Track', path: '/driver-track', icon: '🚦' },
   { label: 'History', path: '/driver-history', icon: '🕑' },
   { label: 'Route', path: '/driver-route', icon: '🗺️' },
+  { label: 'Profile', path: '/profile', icon: '👤' },
+];
+const adminNav = [
+  { label: 'Home', path: '/', icon: '🏠' },
+  { label: 'Order', path: '/order', icon: '🛒' },
+  { label: 'Admin', path: '/admin', icon: '🗂️' },
+  { label: 'Profile', path: '/profile', icon: '👤' },
 ];
 
 const BottomNav: React.FC = () => {
   const location = useLocation();
   const { theme } = useTheme();
+  const profile = getProfile();
+  let navItems = customerNav;
+  if (profile.role === 'admin') navItems = adminNav;
+  else if (profile.role === 'driver') navItems = driverNav;
   return (
     <nav style={{
       position: 'fixed',
       left: 0,
       right: 0,
       bottom: 0,
-  width: '100%',
+      width: '100%',
       background: theme === 'dark'
         ? '#18181b'
         : '#fff',
