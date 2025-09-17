@@ -6,21 +6,21 @@ import { getProfile } from '../utils/profileStorage';
 const customerNav = [
   { label: 'Home', path: '/', icon: '🏠' },
   { label: 'Order', path: '/order', icon: '🛒' },
-  { label: 'Track', path: '/track', icon: '📦' },
+   // { label: 'Track', path: '/track', icon: '📦' },  // Hidden from bottom nav
   { label: 'History', path: '/history', icon: '🕑' },
   { label: 'Profile', path: '/profile', icon: '👤' },
 ];
 const driverNav = [
   { label: 'Driver', path: '/driver', icon: '🚚' },
   // { label: 'Pickup', path: '/pickup', icon: '🔑' }, // Hidden from bottom nav
-  { label: 'Track', path: '/driver-track', icon: '🚦' },
+  // { label: 'Track', path: '/driver-track', icon: '🚦' }, // Hidden from bottom nav
+    { label: 'Route', path: '/driver-route', icon: '🗺️' },
   { label: 'History', path: '/driver-history', icon: '🕑' },
-  { label: 'Route', path: '/driver-route', icon: '🗺️' },
   { label: 'Profile', path: '/profile', icon: '👤' },
 ];
 const adminNav = [
-  { label: 'Home', path: '/', icon: '🏠' },
-  { label: 'Order', path: '/order', icon: '🛒' },
+  // { label: 'Home', path: '/', icon: '🏠' }, // Hidden from bottom nav
+  // { label: 'Order', path: '/order', icon: '🛒' },
   { label: 'Assign', path: '/admin-assign-orders', icon: '🧑‍🤝‍🧑' },
   { label: 'Admin', path: '/admin', icon: '🗂️' },
   { label: 'Profile', path: '/profile', icon: '👤' },
