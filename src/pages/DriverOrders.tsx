@@ -18,7 +18,7 @@ const DriverOrders: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchId, setSearchId] = useState('');
-  const assignedOrders: Order[] = orders.filter((o: Order) => o.status !== 'delivered' && !!o.orderId);
+  const assignedOrders: Order[] = orders.filter((o: Order) => o.status !== 'delivered' && o.status !== 'failed' && !!o.orderId);
   const filteredOrders = searchId.trim()
     ? assignedOrders.filter(o => {
         const orderIdStr = o.orderId !== undefined ? String(o.orderId).toLowerCase() : '';
@@ -97,6 +97,11 @@ const DriverOrders: React.FC = () => {
   const [showInfo, setShowInfo] = useState(false);
   const [showInfoIdx, setShowInfoIdx] = useState<null | string | number>(null);
 
+  // Modal for sending order updates
+  const [showSendModal, setShowSendModal] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [sendResult, setSendResult] = useState<string | null>(null);
+
   return (
     <div style={{
       minHeight: '100vh',
@@ -143,15 +148,123 @@ const DriverOrders: React.FC = () => {
           >Clear Local Orders</button>
         </div>
         {/* Search by Order ID */}
-        <div style={{ width: '100%', margin: '0 0 1.5rem 0', display: 'flex', justifyContent: 'center' }}>
+        <div style={{ width: '100%', margin: '0 0 1.5rem 0', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <input
             type="text"
             value={searchId}
             onChange={e => setSearchId(e.target.value)}
             placeholder="Search by Order ID..."
-            style={{ width: '100%', maxWidth: '320px', padding: '0.7rem', borderRadius: '0.8rem', border: '1px solid #e5e7eb', fontSize: '1rem' }}
+            style={{ width: '100%', maxWidth: '320px', padding: '0.7rem', borderRadius: '0.8rem', border: '1px solid #e5e7eb', fontSize: '1rem', marginBottom: '0.7rem' }}
           />
+          <button
+            onClick={() => { setShowSendModal(true); setSendResult(null); }}
+            style={{ background: '#22c55e', color: '#fff', border: 'none', borderRadius: '0.8rem', padding: '0.6rem 1.5rem', fontWeight: 600, cursor: 'pointer', fontSize: '1rem', marginTop: '0.2rem', minWidth: '180px' }}
+          >Send Order Updates</button>
         </div>
+      {/* Send Order Updates Modal */}
+      {showSendModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
+          background: 'rgba(0,0,0,0.18)',
+          zIndex: 9999,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}>
+          <div style={{
+            background: theme === 'dark' ? '#23272f' : '#fff',
+            borderRadius: '1.2rem',
+            boxShadow: theme === 'dark' ? '0 4px 24px rgba(56,189,248,0.10)' : '0 4px 24px rgba(0,0,0,0.08)',
+            padding: '2.5rem 1.5rem 2rem 1.5rem',
+            maxWidth: '350px',
+            width: '90vw',
+            textAlign: 'center',
+            color: theme === 'dark' ? '#22c55e' : '#0f172a',
+            fontWeight: 600,
+            fontSize: '1.1rem',
+            position: 'relative',
+          }}>
+            <div style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: '0.7rem' }}>
+              Send Order Updates
+            </div>
+            <div style={{ fontSize: '1rem', marginBottom: '0.7rem' }}>
+              Have you completed all deliveries and want to sync your order status updates to the server?
+            </div>
+            {sendResult && (
+              <div style={{ color: sendResult.startsWith('Success') ? '#22c55e' : '#ef4444', marginBottom: '1rem', fontWeight: 700 }}>{sendResult}</div>
+            )}
+            <button
+              onClick={async () => {
+                setSending(true);
+                setSendResult(null);
+                try {
+                  // Only send orders with status not 'pending' (i.e., updated by driver)
+                  const updatedOrders = orders.filter(o => o.status && o.status !== 'pending');
+                  // Map to backend expected format: { orderId, status, failedNote }
+                  const updates = updatedOrders.map(o => ({
+                    orderId: o.orderId || o.order_id,
+                    status: o.status,
+                    failedNote: o.failedNote || o.failed_note || null
+                  }));
+                  const res = await fetch('/driver/update-orders', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ updates }),
+                  });
+                  const data = await res.json();
+                  if (data.success) {
+                    setSendResult('Success: Order updates sent!');
+                    // Optionally, update local storage with backend response
+                    if (Array.isArray(data.orders)) {
+                      setOrders(data.orders);
+                      localStorage.setItem('tapgas_orders', JSON.stringify(data.orders));
+                    }
+                  } else {
+                    setSendResult('Error: ' + (data.error || 'Failed to update orders'));
+                  }
+                } catch (err) {
+                  setSendResult('Error: Failed to send updates');
+                } finally {
+                  setSending(false);
+                }
+              }}
+              style={{
+                background: sending ? '#e5e7eb' : '#22c55e',
+                color: sending ? '#64748b' : '#fff',
+                border: 'none',
+                borderRadius: '2rem',
+                padding: '0.7rem 2rem',
+                fontSize: '1rem',
+                fontWeight: 700,
+                boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+                cursor: sending ? 'not-allowed' : 'pointer',
+                marginRight: '0.7rem',
+                marginBottom: '0.5rem',
+              }}
+              disabled={sending}
+            >{sending ? 'Sending...' : 'Send Order Updates'}</button>
+            <button
+              onClick={() => { setShowSendModal(false); setSendResult(null); }}
+              style={{
+                background: theme === 'dark' ? '#334155' : '#e5e7eb',
+                color: theme === 'dark' ? '#fbbf24' : '#0f172a',
+                border: 'none',
+                borderRadius: '2rem',
+                padding: '0.7rem 2rem',
+                fontSize: '1rem',
+                fontWeight: 700,
+                boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+                cursor: 'pointer',
+              }}
+            >Cancel</button>
+          </div>
+        </div>
+      )}
         {showInfo && (
           <div style={{
             position: 'absolute',

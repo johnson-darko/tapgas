@@ -26,6 +26,57 @@ const Order: React.FC = () => {
   // New: Service type for LPG refill
   const [serviceType, setServiceType] = useState<'kiosk' | 'pickup' | null>(null);
   const [timeSlot, setTimeSlot] = useState<'morning' | 'evening' | null>(null);
+  const [selectedDate, setSelectedDate] = useState<string>(() => {
+    const now = new Date();
+    return now.toISOString().slice(0, 10);
+  });
+
+  // Helper: parse time window string (e.g. "4:30–9:00 AM") to [start, end] Date objects for today
+  function parseTimeWindowStr(windowStr: string): [Date, Date] | [null, null] {
+    // Example: "4:30–9:00 AM" or "4:30–8:00 PM"
+    const match = windowStr.match(/(\d{1,2}):(\d{2})[–-](\d{1,2}):(\d{2}) ?([AP]M)/i);
+    if (!match) return [null, null];
+    let [, startH, startM, endH, endM, ampm] = match;
+    let sH = parseInt(startH, 10);
+    let sM = parseInt(startM, 10);
+    let eH = parseInt(endH, 10);
+    let eM = parseInt(endM, 10);
+    if (ampm.toLowerCase() === 'pm' && sH < 12) { sH += 12; eH += 12; }
+    if (ampm.toLowerCase() === 'am' && sH === 12) { sH = 0; }
+    if (ampm.toLowerCase() === 'am' && eH === 12) { eH = 0; }
+    const now = new Date();
+    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), sH, sM, 0, 0);
+    const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), eH, eM, 0, 0);
+    return [start, end];
+  }
+
+  // Time window strings for each slot
+  const timeSlotWindows = {
+    morning: '4:30–9:00 AM',
+    evening: '4:30–8:00 PM',
+  };
+
+  // Modal for time slot errors
+  const [showTimeSlotModal, setShowTimeSlotModal] = useState(false);
+  const [timeSlotModalMsg, setTimeSlotModalMsg] = useState('');
+
+  // Smart handler for time slot selection
+  function handleTimeSlotSelect(slot: 'morning' | 'evening') {
+    // If selected date is today, check if slot is still valid
+    const todayStr = new Date().toISOString().slice(0, 10);
+    if (selectedDate === todayStr) {
+      const windowStr = timeSlotWindows[slot];
+      const [, end] = parseTimeWindowStr(windowStr);
+      const now = new Date();
+      if (end && now > end) {
+        setTimeSlotModalMsg(`You cannot choose this time because it's past the ${slot} schedule for today. Please choose another available time or a future date.`);
+        setShowTimeSlotModal(true);
+        return;
+      }
+    }
+    setTimeSlot(slot);
+    setDeliveryWindow(null);
+  }
   const [deliveryWindow, setDeliveryWindow] = useState<'sameDayEvening' | 'nextMorning' | 'nextEvening' | null>(null);
   const [address, setAddress] = useState('');
   const [locating, setLocating] = useState(false);
@@ -71,7 +122,7 @@ const Order: React.FC = () => {
       cylinderType: orderType === 'gas' ? cylinder : `${cylinder} Cylinder (${filled})`,
       uniqueCode: localUniqueCode,
       status: 'pending',
-      date: new Date().toISOString().slice(0, 10),
+      date: selectedDate,
       amountPaid: 0,
       notes,
       payment,
@@ -183,6 +234,53 @@ const Order: React.FC = () => {
           </div>
         </div>
       )}
+      {/* Time slot error modal */}
+      {showTimeSlotModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
+          background: 'rgba(0,0,0,0.35)',
+          zIndex: 10000,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}>
+          <div style={{
+            background: theme === 'dark' ? '#23272f' : '#fff',
+            color: theme === 'dark' ? '#fbbf24' : '#0f172a',
+            borderRadius: '1.2rem',
+            boxShadow: '0 4px 24px rgba(0,0,0,0.18)',
+            padding: '2rem 2.2rem',
+            maxWidth: '90vw',
+            minWidth: '260px',
+            textAlign: 'center',
+            fontWeight: 600,
+            fontSize: '1.1rem',
+          }}>
+            <div style={{ fontSize: '2.2rem', marginBottom: '1rem' }}>⏰</div>
+            {timeSlotModalMsg}
+            <button
+              style={{
+                marginTop: '1.5rem',
+                background: theme === 'dark' ? '#38bdf8' : '#0f172a',
+                color: theme === 'dark' ? '#0f172a' : '#fff',
+                border: 'none',
+                borderRadius: '0.8rem',
+                padding: '0.7rem 1.5rem',
+                fontWeight: 700,
+                fontSize: '1rem',
+                cursor: 'pointer',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+              }}
+              onClick={() => setShowTimeSlotModal(false)}
+            >OK</button>
+          </div>
+        </div>
+      )}
+
       {/* Main order form UI */}
       <div style={{
         maxWidth: '420px',
@@ -260,15 +358,34 @@ const Order: React.FC = () => {
               {/* Step 2: Time slot selection */}
               {serviceType && (
                 <div>
-                  <label style={{ fontWeight: 600, color: theme === 'dark' ? '#38bdf8' : '#334155' }}>Select {serviceType === 'kiosk' ? 'Drop-off' : 'Pickup'} Time</label>
+                  <label style={{ fontWeight: 600, color: theme === 'dark' ? '#38bdf8' : '#334155' }}>Select {serviceType === 'kiosk' ? 'Drop-off' : 'Pickup'} Date</label>
+                  <input
+                    type="date"
+                    value={selectedDate}
+                    min={new Date().toISOString().slice(0, 10)}
+                    onChange={e => {
+                      setSelectedDate(e.target.value);
+                      setTimeSlot(null);
+                      setDeliveryWindow(null);
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '0.7rem',
+                      borderRadius: '0.8rem',
+                      border: '1px solid #e5e7eb',
+                      marginTop: '0.5rem',
+                      fontSize: '1rem',
+                    }}
+                  />
+                  <label style={{ fontWeight: 600, color: theme === 'dark' ? '#38bdf8' : '#334155', marginTop: '1rem', display: 'block' }}>Select {serviceType === 'kiosk' ? 'Drop-off' : 'Pickup'} Time</label>
                   <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem' }}>
-                    <button type="button" onClick={() => { setTimeSlot('morning'); setDeliveryWindow(null); }}
+                    <button type="button" onClick={() => handleTimeSlotSelect('morning')}
                       style={{
                         background: timeSlot === 'morning' ? (theme === 'dark' ? '#fbbf24' : '#38bdf8') : (theme === 'dark' ? '#23272f' : '#e5e7eb'),
                         color: timeSlot === 'morning' ? (theme === 'dark' ? '#0f172a' : '#fff') : (theme === 'dark' ? '#38bdf8' : '#334155'),
                         border: 'none', borderRadius: '1rem', padding: '0.7rem 1.5rem', fontWeight: 600, cursor: 'pointer', fontSize: '1rem', transition: 'background 0.2s',
                       }}>Morning (4:30–9:00 AM)</button>
-                    <button type="button" onClick={() => { setTimeSlot('evening'); setDeliveryWindow(null); }}
+                    <button type="button" onClick={() => handleTimeSlotSelect('evening')}
                       style={{
                         background: timeSlot === 'evening' ? (theme === 'dark' ? '#fbbf24' : '#38bdf8') : (theme === 'dark' ? '#23272f' : '#e5e7eb'),
                         color: timeSlot === 'evening' ? (theme === 'dark' ? '#0f172a' : '#fff') : (theme === 'dark' ? '#38bdf8' : '#334155'),

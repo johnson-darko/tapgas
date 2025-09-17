@@ -9,6 +9,7 @@ export default defineConfig({
     proxy: {
       '/auth': 'http://localhost:5020',
       '/order': 'http://localhost:5020',
+      '/driver': 'http://localhost:5020',
     },
   },
   base: '/tapgas/', // Must match your repo name!

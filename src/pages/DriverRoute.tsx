@@ -9,8 +9,8 @@ import type { Order } from '../utils/orderStorage';
 const DriverRoute: React.FC = () => {
   const { theme } = useTheme();
   const [view, setView] = useState<'map' | 'list'>('map');
-  // Only show not delivered orders
-  const activeOrders = getOrders().filter((o: Order) => o.status !== 'delivered' && !!o.orderId);
+  // Only show orders that are not delivered or failed
+  const activeOrders = getOrders().filter((o: Order) => o.status !== 'delivered' && o.status !== 'failed' && !!o.orderId);
   // Group orders by address (area/neighborhood)
   const groupedOrders: { [address: string]: Order[] } = {};
   activeOrders.forEach((order: Order) => {

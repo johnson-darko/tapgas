@@ -79,14 +79,118 @@ const Home: React.FC = () => {
   useEffect(() => {
     setOrders(getOrders());
   }, []);
-  const activeOrders = orders.filter((o: Order) => o.status !== 'delivered');
+  // Show the most recent order, even if delivered or failed, until a new order is placed
+  let activeOrders = orders.filter((o: Order) => o.status !== 'delivered' && o.status !== 'failed');
+  if (activeOrders.length === 0 && orders.length > 0) {
+    // Sort orders by date descending (most recent first)
+    const sorted = [...orders].sort((a, b) => {
+      const aDate = new Date(a.date || a.created_at || 0).getTime();
+      const bDate = new Date(b.date || b.created_at || 0).getTime();
+      return bDate - aDate;
+    });
+    // Show the most recent order (delivered or failed)
+    activeOrders = [sorted[0]];
+  }
   const profile = getProfile();
 
-  async function checkOrderUpdate(order: Order) {
+  // Helper: parse time window string (e.g. "2-4 pm") to [start, end] Date objects for today
+  function parseTimeWindow(windowStr) {
+    if (!windowStr) return [null, null];
+    // Example: "2-4 pm" or "10-12 am"
+    const match = windowStr.match(/(\d{1,2})-(\d{1,2}) ?([ap]m)/i);
+    if (!match) return [null, null];
+    let [_, startH, endH, ampm] = match;
+    startH = parseInt(startH, 10);
+    endH = parseInt(endH, 10);
+    if (ampm.toLowerCase() === 'pm' && startH < 12) { startH += 12; endH += 12; }
+    if (ampm.toLowerCase() === 'am' && startH === 12) { startH = 0; }
+    if (ampm.toLowerCase() === 'am' && endH === 12) { endH = 0; }
+    const now = new Date();
+    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), startH, 0, 0, 0);
+    const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), endH, 0, 0, 0);
+    return [start, end];
+  }
+
+  // Helper: get delivery window as [start, end] Date objects
+  function getDeliveryWindow(order) {
+    if (!order.deliveryWindow) return [null, null];
+    return parseTimeWindow(order.deliveryWindow);
+  }
+
+  // Helper: get drop-off/pickup window as [start, end] Date objects
+  function getDropoffWindow(order) {
+    if (!order.timeSlot) return [null, null];
+    return parseTimeWindow(order.timeSlot);
+  }
+
+  // Track last fetched status for each order (in-memory, resets on reload)
+  const [lastFetchedStatus, setLastFetchedStatus] = useState({});
+  // Modal for check update messages
+  const [showCheckModal, setShowCheckModal] = useState(false);
+  const [checkModalMsg, setCheckModalMsg] = useState('');
+
+  async function checkOrderUpdate(order) {
     if (!profile.email || !order.uniqueCode) {
-      alert('Missing email or unique code.');
+      setCheckModalMsg('Missing email or unique code.');
+      setShowCheckModal(true);
       return;
     }
+    const now = new Date();
+    const [dropStart, dropEnd] = getDropoffWindow(order);
+    const [delivStart, delivEnd] = getDeliveryWindow(order);
+    const status = order.status;
+    const lastStatus = lastFetchedStatus[order.orderId || order.order_id];
+
+    // 1. Before drop-off/pickup window
+    if (dropStart && now < dropStart) {
+      setCheckModalMsg('No updates available yet. Please check back during your drop-off/pickup window.');
+      setShowCheckModal(true);
+      return;
+    }
+
+    // 2. During drop-off/pickup window
+    if (dropStart && dropEnd && now >= dropStart && now <= dropEnd) {
+      if (status === 'onway' || lastStatus === 'onway') {
+        setCheckModalMsg('Order is on the way! You can check for updates again during your delivery window.');
+        setShowCheckModal(true);
+        return;
+      }
+      // Allow fetch
+    }
+
+    // 3. During delivery window
+    if (delivStart && delivEnd && now >= delivStart && now <= delivEnd) {
+      if (status === 'delivered' || status === 'failed' || lastStatus === 'delivered' || lastStatus === 'failed') {
+        setCheckModalMsg('Order is complete. No further updates available.');
+        setShowCheckModal(true);
+        return;
+      }
+      // Allow fetch
+    }
+
+    // 4. After delivery window (up to 24h)
+    if (delivEnd && now > delivEnd) {
+      // Only allow fetch if not delivered/failed and within 24h
+      const hoursSinceEnd = (now - delivEnd) / (1000 * 60 * 60);
+      if ((status === 'delivered' || status === 'failed' || lastStatus === 'delivered' || lastStatus === 'failed') || hoursSinceEnd > 24) {
+        setCheckModalMsg('Order is complete. No further updates available.');
+        setShowCheckModal(true);
+        return;
+      }
+      // Allow fetch
+    }
+
+    // If not in any window, block fetch
+    if (
+      (!dropStart || !dropEnd || now < dropStart) &&
+      (!delivStart || !delivEnd || now < delivStart)
+    ) {
+      setCheckModalMsg('No updates available yet. Please check back during your drop-off/pickup or delivery window.');
+      setShowCheckModal(true);
+      return;
+    }
+
+    // --- Fetch from cloud ---
     try {
       const res = await fetch(`/order/check`, {
         method: 'POST',
@@ -96,13 +200,40 @@ const Home: React.FC = () => {
       if (!res.ok) throw new Error('Failed to fetch order update');
       const data = await res.json();
       if (data && data.success && data.order) {
-        saveOrder(data.order); // will normalize orderId
-        setOrders(getOrders()); // update state, no reload
+        // Normalize fetched order fields to camelCase
+        const fetched = data.order;
+        const normalizedOrder = {
+          ...fetched,
+          orderId: fetched.order_id || fetched.orderId,
+          customerName: fetched.customer_name || fetched.customerName,
+          cylinderType: fetched.cylinder_type || fetched.cylinderType,
+          uniqueCode: fetched.unique_code || fetched.uniqueCode,
+          payment: fetched.payment_method || fetched.payment,
+          serviceType: fetched.service_type || fetched.serviceType,
+          timeSlot: fetched.time_slot || fetched.timeSlot,
+          deliveryWindow: fetched.delivery_window || fetched.deliveryWindow,
+          failedNote: fetched.failed_note || fetched.failedNote,
+          location: (typeof fetched.location_lat === 'number' && typeof fetched.location_lng === 'number')
+            ? { lat: fetched.location_lat, lng: fetched.location_lng }
+            : fetched.location || { lat: 0, lng: 0 },
+        };
+        const allOrders = getOrders();
+        const updatedOrders = allOrders.map(o =>
+          (o.orderId === normalizedOrder.orderId || o.order_id === normalizedOrder.orderId)
+            ? { ...o, ...normalizedOrder }
+            : o
+        );
+        localStorage.setItem('tapgas_orders', JSON.stringify(updatedOrders));
+        setOrders(updatedOrders);
+        // Track last fetched status for this order
+        setLastFetchedStatus(prev => ({ ...prev, [normalizedOrder.orderId]: normalizedOrder.status }));
       } else {
-        alert('Order not found or error.');
+        setCheckModalMsg('Order not found or error.');
+        setShowCheckModal(true);
       }
     } catch (err) {
-      alert('Error checking order update.');
+      setCheckModalMsg('Error checking order update.');
+      setShowCheckModal(true);
       console.error(err);
     }
   }
@@ -194,6 +325,52 @@ const Home: React.FC = () => {
             marginRight: 'auto',
           }}
         >Clear Local Orders</button>
+        {/* Check Update Modal */}
+        {showCheckModal && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: '100vh',
+            background: 'rgba(0,0,0,0.35)',
+            zIndex: 10000,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}>
+            <div style={{
+              background: theme === 'dark' ? '#23272f' : '#fff',
+              color: theme === 'dark' ? '#fbbf24' : '#0f172a',
+              borderRadius: '1.2rem',
+              boxShadow: '0 4px 24px rgba(0,0,0,0.18)',
+              padding: '2rem 2.2rem',
+              maxWidth: '90vw',
+              minWidth: '260px',
+              textAlign: 'center',
+              fontWeight: 600,
+              fontSize: '1.1rem',
+            }}>
+              <div style={{ fontSize: '2.2rem', marginBottom: '1rem' }}>ℹ️</div>
+              {checkModalMsg}
+              <button
+                style={{
+                  marginTop: '1.5rem',
+                  background: theme === 'dark' ? '#38bdf8' : '#0f172a',
+                  color: theme === 'dark' ? '#0f172a' : '#fff',
+                  border: 'none',
+                  borderRadius: '0.8rem',
+                  padding: '0.7rem 1.5rem',
+                  fontWeight: 700,
+                  fontSize: '1rem',
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+                }}
+                onClick={() => setShowCheckModal(false)}
+              >OK</button>
+            </div>
+          </div>
+        )}
         <div style={{ margin: '2rem 0', width: '100%' }}>
                   <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '1rem', color: theme === 'dark' ? '#fbbf24' : '#0f172a', textAlign: 'center' }}>
                     Lastest Order Overview
@@ -222,7 +399,7 @@ const Home: React.FC = () => {
                           },
                         }}
                         onCheckUpdate={() => checkOrderUpdate(order)}
-                        showCheckUpdate={order.status !== 'delivered'}
+                        showCheckUpdate={order.status !== 'delivered' && order.status !== 'failed'}
                       />
                       {/* Show new workflow details for LPG Gas Refill */}
                       {/* Details for LPG Gas Refill now shown in info popup modal */}
