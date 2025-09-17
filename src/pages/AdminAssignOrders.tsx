@@ -18,15 +18,19 @@ function getDrivers(): string[] {
   }
 }
 
-// Helper: Simple clustering by proximity (group by ~0.01 lat/lng grid)
+// Helper: Cluster by location, requested date, time slot, and delivery window
 type OrderCluster = Order[];
 function clusterOrders(orders: Order[]): OrderCluster[] {
   const clusters: { [key: string]: Order[] } = {};
   orders.forEach((order: Order) => {
     if (!order.location || typeof order.location.lat !== 'number' || typeof order.location.lng !== 'number') return;
+    // Use 0.01 grid for proximity, and add date, timeSlot, deliveryWindow for grouping
     const latKey = Math.round(order.location.lat * 100);
     const lngKey = Math.round(order.location.lng * 100);
-    const key = `${latKey},${lngKey}`;
+    const dateKey = order.date || '';
+    const timeSlotKey = order.timeSlot || '';
+    const deliveryWindowKey = order.deliveryWindow || '';
+    const key = `${latKey},${lngKey}|${dateKey}|${timeSlotKey}|${deliveryWindowKey}`;
     if (!clusters[key]) clusters[key] = [];
     clusters[key].push(order);
   });
@@ -55,6 +59,8 @@ const AdminAssignOrders: React.FC = () => {
     }
   });
   const [view, setView] = useState<'assign' | 'drivers'>('assign');
+  // Modal for cluster info
+  const [showClusterInfo, setShowClusterInfo] = useState<{ idx: number, open: boolean }>({ idx: -1, open: false });
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -75,7 +81,7 @@ const AdminAssignOrders: React.FC = () => {
       const clusterOrders = clusters[assigningCluster];
       const orderIds = clusterOrders.map(o => o.orderId).filter(Boolean);
       try {
-        const res = await fetch('http://localhost:5020/assign-cluster', {
+  const res = await fetch('/assign-cluster', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
@@ -156,6 +162,64 @@ const AdminAssignOrders: React.FC = () => {
               <div style={{ display: 'flex', alignItems: 'center', marginBottom: '0.7rem' }}>
                 <span style={{ fontWeight: 600, color: isAssigned ? '#22c55e' : undefined }}>
                   Cluster #{idx + 1} ({cluster.length} orders)
+                  {/* Info icon that opens modal for cluster grouping explanation */}
+                  <span
+                    onClick={() => setShowClusterInfo({ idx, open: true })}
+                    style={{
+                      marginLeft: 8,
+                      cursor: 'pointer',
+                      color: '#38bdf8',
+                      fontSize: '1.1em',
+                      verticalAlign: 'middle',
+                    }}
+                    title="How was this cluster formed?"
+                  >ℹ️</span>
+              {/* Cluster info modal */}
+              {showClusterInfo.open && showClusterInfo.idx === idx && (
+                <div style={{
+                  position: 'fixed',
+                  top: 0, left: 0, right: 0, bottom: 0,
+                  background: 'rgba(0,0,0,0.18)',
+                  zIndex: 10001,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <div style={{
+                    background: '#fff',
+                    borderRadius: '1rem',
+                    boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
+                    padding: '2rem',
+                    minWidth: 320,
+                    maxWidth: '90vw',
+                    position: 'relative',
+                  }}>
+                    <div style={{ fontWeight: 700, fontSize: '1.1rem', marginBottom: '1.2rem', textAlign: 'center' }}>How was this cluster formed?</div>
+                    <div style={{ fontSize: '1.05rem', marginBottom: '1.2rem' }}>
+                      This cluster groups orders that share:<br />
+                      <ul style={{ margin: '0.7em 0 0 1.2em', padding: 0, fontSize: '1em' }}>
+                        <li><b>Location proximity</b> (nearby addresses)</li>
+                        <li><b>Requested date:</b> {cluster[0]?.date || 'N/A'}</li>
+                        <li><b>Time slot:</b> {(() => {
+                          const slot = cluster[0]?.timeSlot;
+                          if (slot === 'morning') return 'Morning (4:30–9:00 AM)';
+                          if (slot === 'evening') return 'Evening (4:30–8:00 PM)';
+                          return slot || 'N/A-Check if its Buy Cylinder';
+                        })()}</li>
+                        <li><b>Delivery window:</b> {(() => {
+                          const win = cluster[0]?.deliveryWindow;
+                          if (win === 'sameDayEvening') return 'Same Day Evening (4:30–7:00 PM)';
+                          if (win === 'nextMorning') return 'Next Morning (5:00–9:00 AM)';
+                          if (win === 'nextEvening') return 'Next Evening (4:30–8:00 PM)';
+                          return win || 'N/A-Check if its Buy Cylinder';
+                        })()}</li>
+                      </ul>
+                    </div>
+                    <button
+                      onClick={() => setShowClusterInfo({ idx: -1, open: false })}
+                      style={{ background: '#38bdf8', color: '#fff', border: 'none', borderRadius: '0.7rem', padding: '0.5rem 1.2rem', fontWeight: 600, cursor: 'pointer', display: 'block', margin: '0 auto' }}
+                    >Close</button>
+                  </div>
+                </div>
+              )}
                 </span>
                 {isAssigned && (
                   <>

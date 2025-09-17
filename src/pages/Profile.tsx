@@ -42,7 +42,7 @@ const Profile: React.FC = () => {
             e.preventDefault();
             // Sync to backend first
             try {
-              const res = await fetch('http://localhost:5020/profile', {
+              const res = await fetch('/profile', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',

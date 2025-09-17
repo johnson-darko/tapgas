@@ -1,7 +1,7 @@
 // Fetch assigned orders for the logged-in driver from backend
 export async function fetchAssignedOrdersForDriver(): Promise<{ success: boolean; orders: Order[]; error?: string }> {
   try {
-    const res = await fetch('http://localhost:5020/driver/orders', { credentials: 'include' });
+  const res = await fetch('/driver/orders', { credentials: 'include' });
     if (!res.ok) throw new Error('Failed to fetch assigned orders');
     const data = await res.json();
     if (!data.success || !Array.isArray(data.orders)) throw new Error('Invalid response');
