@@ -16,6 +16,7 @@ import React, { useState } from 'react';
 const TrackOrder: React.FC = () => {
   const { theme } = useTheme();
   const [filter, setFilter] = useState<'newest' | 'oldest'>('newest');
+  const [showInfoIdx, setShowInfoIdx] = useState<null | string | number>(null);
   const sortedOrders = [...getOrders()].sort((a, b) => {
     if (filter === 'newest') {
       return new Date(b.date).getTime() - new Date(a.date).getTime();
@@ -79,7 +80,16 @@ const TrackOrder: React.FC = () => {
               <div style={{ fontSize: '0.98rem', marginBottom: '0.3rem' }}>Date: <span style={{ fontWeight: 600 }}>{order.date}</span></div>
               <div style={{ fontSize: '0.98rem', marginBottom: '0.3rem' }}>Order ID: <span style={{ fontWeight: 600 }}>{order.orderId}</span></div>
               <div style={{ width: '100%', marginBottom: '1rem', marginTop: '1.2rem' }}>
-                <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '1rem', color: theme === 'dark' ? '#fbbf24' : '#0f172a' }}>Delivery Status</h3>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+                  <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: theme === 'dark' ? '#fbbf24' : '#0f172a', margin: 0 }}>Delivery Status</h3>
+                  {order.notes && order.notes.trim() !== '' && (
+                    <span
+                      title="Order information"
+                      style={{ cursor: 'pointer', fontSize: '1.1em', color: theme === 'dark' ? '#fbbf24' : '#0f172a', verticalAlign: 'middle' }}
+                      onClick={() => setShowInfoIdx(order.orderId)}
+                    >ℹ️</span>
+                  )}
+                </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
                   {statusSteps.map((step, idx) => (
                     <div key={step.label} style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
@@ -98,6 +108,74 @@ const TrackOrder: React.FC = () => {
                       )}
                     </div>
                   ))}
+                  {/* Info popup modal for this order */}
+                  {showInfoIdx === order.orderId && (
+                    <div
+                      style={{
+                        position: 'fixed',
+                        top: 0,
+                        left: 0,
+                        width: '100vw',
+                        height: '100vh',
+                        background: 'rgba(0,0,0,0.35)',
+                        zIndex: 9999,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                      onClick={() => setShowInfoIdx(null)}
+                    >
+                      <div
+                        style={{
+                          background: theme === 'dark' ? '#23232b' : '#fff',
+                          color: theme === 'dark' ? '#fbbf24' : '#0f172a',
+                          borderRadius: '1.2rem',
+                          boxShadow: '0 4px 24px rgba(0,0,0,0.18)',
+                          padding: '2rem 2.5rem',
+                          minWidth: '260px',
+                          maxWidth: '90vw',
+                          fontSize: '1.05rem',
+                          position: 'relative',
+                        }}
+                        onClick={e => e.stopPropagation()}
+                      >
+                        <div style={{ fontWeight: 700, fontSize: '1.15rem', marginBottom: '1.2rem', textAlign: 'center' }}>Order Details</div>
+                        {/* Only show these for LPG Gas Refill */}
+                        {order.cylinderType && !order.cylinderType.toLowerCase().includes('cylinder') && (
+                          <>
+                            <div><b>Service Type:</b> {order.serviceType === 'kiosk' ? 'Drop off at Kiosk' : order.serviceType === 'pickup' ? 'Pickup from Home' : '-'}</div>
+                            <div><b>Time Slot:</b> {order.timeSlot === 'morning' ? 'Morning (4:30–9:00 AM)' : order.timeSlot === 'evening' ? 'Evening (4:30–8:00 PM)' : '-'}</div>
+                            <div><b>Delivery Window:</b> {
+                              order.deliveryWindow === 'sameDayEvening' ? 'Same Day Evening (4:30–7:00 PM)' :
+                              order.deliveryWindow === 'nextMorning' ? 'Next Morning (5:00–9:00 AM)' :
+                              order.deliveryWindow === 'nextEvening' ? 'Next Evening (4:30–8:00 PM)' : '-'
+                            }</div>
+                          </>
+                        )}
+                        <div style={{ marginTop: '1.2rem', fontSize: '1rem' }}>
+                          <b>Directions / Notes:</b><br />
+                          <span style={{ color: theme === 'dark' ? '#fbbf24' : '#0f172a' }}>{order.notes ? order.notes : 'None provided'}</span>
+                        </div>
+                        <button
+                          style={{
+                            marginTop: '1.5rem',
+                            background: theme === 'dark' ? '#38bdf8' : '#0f172a',
+                            color: theme === 'dark' ? '#0f172a' : '#fff',
+                            border: 'none',
+                            borderRadius: '0.7rem',
+                            padding: '0.5rem 1.2rem',
+                            fontWeight: 600,
+                            fontSize: '1rem',
+                            cursor: 'pointer',
+                            display: 'block',
+                            marginLeft: 'auto',
+                            marginRight: 'auto',
+                          }}
+                          onClick={() => setShowInfoIdx(null)}
+                        >Close</button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
               {/* Show map last */}

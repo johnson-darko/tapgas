@@ -1,3 +1,20 @@
+// Fetch assigned orders for the logged-in driver from backend
+export async function fetchAssignedOrdersForDriver(): Promise<{ success: boolean; orders: Order[]; error?: string }> {
+  try {
+    const res = await fetch('http://localhost:5020/driver/orders', { credentials: 'include' });
+    if (!res.ok) throw new Error('Failed to fetch assigned orders');
+    const data = await res.json();
+    if (!data.success || !Array.isArray(data.orders)) throw new Error('Invalid response');
+  // Do not overwrite local storage here; let the caller handle merging and saving
+    return { success: true, orders: data.orders };
+  } catch (err: unknown) {
+    let msg = 'Unknown error';
+    if (err && typeof err === 'object' && 'message' in err && typeof (err as { message?: unknown }).message === 'string') {
+      msg = (err as { message: string }).message;
+    }
+    return { success: false, orders: [], error: msg };
+  }
+}
 // Utility for managing orders in local storage
 
 export interface Order {
@@ -68,6 +85,7 @@ export function saveOrder(order: Order) {
     timeSlot: order.timeSlot ?? order.time_slot ?? '',
     deliveryWindow: order.deliveryWindow ?? order.delivery_window ?? '',
     uniqueCode: order.uniqueCode ?? order.unique_code ?? '',
+    notes: order.notes ?? order.failedNote ?? '',
   };
   // Remove any order with the same uniqueCode (string or number match)
   const filteredOrders = orders.filter(
@@ -109,6 +127,7 @@ export function mergeOrders(newOrders: Partial<Order>[]) {
       uniqueCode: o.uniqueCode ?? o.unique_code ?? '',
       amountPaid: o.amountPaid ?? o.amount_paid ?? undefined,
       payment: o.payment ?? o.payment_method ?? '',
+      notes: o.notes ?? o.failedNote ?? '',
       location,
     };
   });
@@ -148,15 +167,18 @@ export function mergeOrders(newOrders: Partial<Order>[]) {
   localStorage.setItem(ORDER_STORAGE_KEY, JSON.stringify(merged));
 }
 
-// Fetch all orders from backend (admin only)
-export async function syncOrdersFromBackend(): Promise<{ success: boolean; count: number; error?: string }> {
+// Fetch all orders and drivers from backend (admin only)
+export async function syncOrdersFromBackend(): Promise<{ success: boolean; count: number; drivers?: string[]; error?: string }> {
   try {
     const res = await fetch('/orders', { credentials: 'include' });
     if (!res.ok) throw new Error('Failed to fetch orders');
     const data = await res.json();
     if (!data.success || !Array.isArray(data.orders)) throw new Error('Invalid response');
     mergeOrders(data.orders);
-    return { success: true, count: data.orders.length };
+    if (Array.isArray(data.drivers)) {
+      localStorage.setItem('tapgas_drivers', JSON.stringify(data.drivers));
+    }
+    return { success: true, count: data.orders.length, drivers: data.drivers };
   } catch (err: unknown) {
     let msg = 'Unknown error';
     if (err && typeof err === 'object' && 'message' in err && typeof (err as { message?: unknown }).message === 'string') {

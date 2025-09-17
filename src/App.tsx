@@ -12,6 +12,8 @@ import TrackOrder from './pages/TrackOrder';
 import History from './pages/History';
 import Profile from './pages/Profile';
 import Admin from './pages/Admin';
+import AdminAssignOrders from './pages/AdminAssignOrders';
+import AdminDrivers from './pages/AdminDrivers';
 import DriverOrders from './pages/DriverOrders';
 import PickupConfirm from './pages/PickupConfirm';
 import DriverTrackOrder from './pages/DriverTrackOrder';
@@ -73,6 +75,8 @@ const App: React.FC = () => {
                   <Route path="/driver-history" element={<DriverHistory />} />
                   <Route path="/driver-route" element={<DriverRoute />} />
                   <Route path="/login" element={<Login />} />
+                  <Route path="/admin-assign-orders" element={<AdminAssignOrders />} />
+                  <Route path="/admin-drivers" element={<AdminDrivers />} />
                 </Routes>
               </div>
               <Footer />

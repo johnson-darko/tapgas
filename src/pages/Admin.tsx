@@ -24,11 +24,14 @@ const Admin: React.FC = () => {
   if (view === 'delivered') filteredOrders = orders.filter((o: Order) => o.status === 'delivered');
   if (view === 'failed') filteredOrders = orders.filter((o: Order) => o.status === 'failed');
   if (search.trim()) {
+    const searchLower = search.toLowerCase();
     filteredOrders = filteredOrders.filter((o: Order) =>
-  (o.customerName ?? '').toLowerCase().includes(search.toLowerCase()) ||
-  (o.address ?? '').toLowerCase().includes(search.toLowerCase()) ||
-      (o.cylinderType && o.cylinderType.toLowerCase().includes(search.toLowerCase())) ||
-      (o.notes && o.notes.toLowerCase().includes(search.toLowerCase()))
+      (o.customerName ?? '').toLowerCase().includes(searchLower) ||
+      (o.address ?? '').toLowerCase().includes(searchLower) ||
+      (o.cylinderType && o.cylinderType.toLowerCase().includes(searchLower)) ||
+      (o.notes && o.notes.toLowerCase().includes(searchLower)) ||
+      (o.uniqueCode !== undefined && String(o.uniqueCode).toLowerCase().includes(searchLower)) ||
+      (o.orderId !== undefined && String(o.orderId).toLowerCase().includes(searchLower))
     );
   }
   // Only keep orders with orderId

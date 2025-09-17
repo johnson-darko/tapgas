@@ -12,7 +12,7 @@ const customerNav = [
 ];
 const driverNav = [
   { label: 'Driver', path: '/driver', icon: '🚚' },
-  { label: 'Pickup', path: '/pickup', icon: '🔑' },
+  // { label: 'Pickup', path: '/pickup', icon: '🔑' }, // Hidden from bottom nav
   { label: 'Track', path: '/driver-track', icon: '🚦' },
   { label: 'History', path: '/driver-history', icon: '🕑' },
   { label: 'Route', path: '/driver-route', icon: '🗺️' },
@@ -21,6 +21,7 @@ const driverNav = [
 const adminNav = [
   { label: 'Home', path: '/', icon: '🏠' },
   { label: 'Order', path: '/order', icon: '🛒' },
+  { label: 'Assign', path: '/admin-assign-orders', icon: '🧑‍🤝‍🧑' },
   { label: 'Admin', path: '/admin', icon: '🗂️' },
   { label: 'Profile', path: '/profile', icon: '👤' },
 ];

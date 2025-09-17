@@ -20,7 +20,11 @@ const PickupConfirm: React.FC = () => {
       setFoundOrder(null);
       return;
     }
-  const order = getOrders().find((o: Order) => o.uniqueCode === codeNum && o.status !== 'delivered' && !!o.orderId);
+  const order = getOrders().find((o: Order) =>
+    String(o.uniqueCode) === String(inputCode) &&
+    o.status !== 'delivered' &&
+    !!o.orderId
+  );
     if (!order) {
       setError('No active order found for this code.');
       setFoundOrder(null);
@@ -137,7 +141,7 @@ const PickupConfirm: React.FC = () => {
         {error && <div style={{ color: '#ef4444', fontWeight: 600, marginBottom: '1rem' }}>{error}</div>}
         {foundOrder && !confirmed && (
           <div style={{ width: '100%', marginBottom: '2rem' }}>
-            <OrderCard order={foundOrder} />
+            <OrderCard order={foundOrder} role="driver" />
             <button
               onClick={handlePickup}
               style={{

@@ -19,9 +19,11 @@ interface OrderCardProps {
     serviceType?: string;
     timeSlot?: string;
     deliveryWindow?: string;
+    notes?: string;
   };
   onCheckUpdate?: () => void;
   showCheckUpdate?: boolean;
+  role?: string;
 }
 
 import { useTheme } from '../useTheme';
@@ -32,7 +34,7 @@ const statusColors: Record<string, string> = {
   onway: '#38bdf8',
 };
 
-const OrderCard: React.FC<OrderCardProps> = ({ order, onCheckUpdate, showCheckUpdate }) => {
+const OrderCard: React.FC<OrderCardProps> = ({ order, onCheckUpdate, showCheckUpdate, role }) => {
   const { theme } = useTheme();
   const [showInfo, setShowInfo] = useState(false);
   return (
@@ -90,8 +92,8 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, onCheckUpdate, showCheckUp
         <div style={{ fontSize: '0.98rem' }}>
           Amount Paid: <span style={{ fontWeight: 700, color: theme === 'dark' ? '#fbbf24' : '#22c55e' }}>Not yet</span>
         </div>
-        {/* Show info icon only for LPG Gas Refill orders */}
-        {order.cylinderType && !order.cylinderType.toLowerCase().includes('cylinder') && (
+        {/* Show info icon for any order with notes */}
+        {order.notes && order.notes.trim() !== '' && (
           <div style={{ marginTop: '0.2rem', display: 'flex', justifyContent: 'center' }}>
             <span
               title="Order information"
@@ -131,13 +133,22 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, onCheckUpdate, showCheckUp
               onClick={e => e.stopPropagation()}
             >
               <div style={{ fontWeight: 700, fontSize: '1.15rem', marginBottom: '1.2rem', textAlign: 'center' }}>Order Details</div>
-              <div><b>Service Type:</b> {order.serviceType === 'kiosk' ? 'Drop off at Kiosk' : order.serviceType === 'pickup' ? 'Pickup from Home' : '-'}</div>
-              <div><b>Time Slot:</b> {order.timeSlot === 'morning' ? 'Morning (4:30–9:00 AM)' : order.timeSlot === 'evening' ? 'Evening (4:30–8:00 PM)' : '-'}</div>
-              <div><b>Delivery Window:</b> {
-                order.deliveryWindow === 'sameDayEvening' ? 'Same Day Evening (4:30–7:00 PM)' :
-                order.deliveryWindow === 'nextMorning' ? 'Next Morning (5:00–9:00 AM)' :
-                order.deliveryWindow === 'nextEvening' ? 'Next Evening (4:30–8:00 PM)' : '-'
-              }</div>
+              {/* Only show these for LPG Gas Refill */}
+              {order.cylinderType && !order.cylinderType.toLowerCase().includes('cylinder') && (
+                <>
+                  <div><b>Service Type:</b> {order.serviceType === 'kiosk' ? 'Drop off at Kiosk' : order.serviceType === 'pickup' ? 'Pickup from Home' : '-'}</div>
+                  <div><b>Time Slot:</b> {order.timeSlot === 'morning' ? 'Morning (4:30–9:00 AM)' : order.timeSlot === 'evening' ? 'Evening (4:30–8:00 PM)' : '-'}</div>
+                  <div><b>Delivery Window:</b> {
+                    order.deliveryWindow === 'sameDayEvening' ? 'Same Day Evening (4:30–7:00 PM)' :
+                    order.deliveryWindow === 'nextMorning' ? 'Next Morning (5:00–9:00 AM)' :
+                    order.deliveryWindow === 'nextEvening' ? 'Next Evening (4:30–8:00 PM)' : '-'
+                  }</div>
+                </>
+              )}
+              <div style={{ marginTop: '1.2rem', fontSize: '1rem' }}>
+                <b>Directions / Notes:</b><br />
+                <span style={{ color: theme === 'dark' ? '#fbbf24' : '#0f172a' }}>{order.notes ? order.notes : 'None provided'}</span>
+              </div>
               <button
                 style={{
                   marginTop: '1.5rem',
@@ -190,9 +201,11 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, onCheckUpdate, showCheckUp
         background: theme === 'dark' ? '#18181b' : '#f8fafc',
         borderLeft: theme === 'dark' ? '1px dashed #334155' : '1px dashed #e5e7eb',
       }}>
-        <div style={{ fontWeight: 700, fontSize: '1.1rem', color: theme === 'dark' ? '#fbbf24' : '#38bdf8', marginBottom: '0.5rem', letterSpacing: '2px' }}>
-          <span role="img" aria-label="code">🔑</span> {order.uniqueCode}
-        </div>
+        {role !== 'driver' && (
+          <div style={{ fontWeight: 700, fontSize: '1.1rem', color: theme === 'dark' ? '#fbbf24' : '#38bdf8', marginBottom: '0.5rem', letterSpacing: '2px' }}>
+            <span role="img" aria-label="code">🔑</span> {order.uniqueCode}
+          </div>
+        )}
         <div style={{ marginBottom: '0.7rem' }}>
           <QRCodeCanvas value={(order.orderId ?? '').toString()} size={80} />
           <div style={{ fontSize: '0.8rem', color: theme === 'dark' ? '#64748b' : '#334155', marginTop: '0.3rem' }}>Scan to confirm pickup</div>
