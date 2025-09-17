@@ -210,7 +210,7 @@ const AdminAssignOrders: React.FC = () => {
                       }
                       return acc;
                     }, {} as Record<string, Order[]>)
-                  ).map(([locKey, ordersAtLoc], i) => {
+                  ).map(([locKey, ordersAtLoc]) => {
                     const [lat, lng] = locKey.split(',').map(Number);
                     return (
                       <CircleMarker

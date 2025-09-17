@@ -92,16 +92,14 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, onCheckUpdate, showCheckUp
         <div style={{ fontSize: '0.98rem' }}>
           Amount Paid: <span style={{ fontWeight: 700, color: theme === 'dark' ? '#fbbf24' : '#22c55e' }}>Not yet</span>
         </div>
-        {/* Show info icon for any order with notes */}
-        {order.notes && order.notes.trim() !== '' && (
-          <div style={{ marginTop: '0.2rem', display: 'flex', justifyContent: 'center' }}>
-            <span
-              title="Order information"
-              style={{ cursor: 'pointer', fontSize: '1.1em', color: theme === 'dark' ? '#fbbf24' : '#0f172a', verticalAlign: 'middle' }}
-              onClick={() => setShowInfo(true)}
-            >ℹ️</span>
-          </div>
-        )}
+        {/* Always show info icon for order details */}
+        <div style={{ marginTop: '0.2rem', display: 'flex', justifyContent: 'center' }}>
+          <span
+            title="Order information"
+            style={{ cursor: 'pointer', fontSize: '1.1em', color: theme === 'dark' ? '#fbbf24' : '#0f172a', verticalAlign: 'middle' }}
+            onClick={() => setShowInfo(true)}
+          >ℹ️</span>
+        </div>
         {showInfo && (
           <div
             style={{

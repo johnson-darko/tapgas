@@ -66,7 +66,7 @@ const AnimatedOrderStory: React.FC<AnimatedOrderStoryProps> = ({ theme }) => {
 };
 
 import { useTheme } from '../useTheme';
-import { getOrders, saveOrder } from '../utils/orderStorage';
+import { getOrders } from '../utils/orderStorage';
 import { getProfile } from '../utils/profileStorage';
 // ...existing code...
 import OrderCard from '../components/OrderCard';
@@ -94,14 +94,14 @@ const Home: React.FC = () => {
   const profile = getProfile();
 
   // Helper: parse time window string (e.g. "2-4 pm") to [start, end] Date objects for today
-  function parseTimeWindow(windowStr) {
+  function parseTimeWindow(windowStr: string): [Date | null, Date | null] {
     if (!windowStr) return [null, null];
     // Example: "2-4 pm" or "10-12 am"
     const match = windowStr.match(/(\d{1,2})-(\d{1,2}) ?([ap]m)/i);
     if (!match) return [null, null];
-    let [_, startH, endH, ampm] = match;
-    startH = parseInt(startH, 10);
-    endH = parseInt(endH, 10);
+  const [, startHStr, endHStr, ampm] = match;
+    let startH = parseInt(startHStr, 10);
+    let endH = parseInt(endHStr, 10);
     if (ampm.toLowerCase() === 'pm' && startH < 12) { startH += 12; endH += 12; }
     if (ampm.toLowerCase() === 'am' && startH === 12) { startH = 0; }
     if (ampm.toLowerCase() === 'am' && endH === 12) { endH = 0; }
@@ -112,24 +112,24 @@ const Home: React.FC = () => {
   }
 
   // Helper: get delivery window as [start, end] Date objects
-  function getDeliveryWindow(order) {
+  function getDeliveryWindow(order: Order): [Date | null, Date | null] {
     if (!order.deliveryWindow) return [null, null];
     return parseTimeWindow(order.deliveryWindow);
   }
 
   // Helper: get drop-off/pickup window as [start, end] Date objects
-  function getDropoffWindow(order) {
+  function getDropoffWindow(order: Order): [Date | null, Date | null] {
     if (!order.timeSlot) return [null, null];
     return parseTimeWindow(order.timeSlot);
   }
 
   // Track last fetched status for each order (in-memory, resets on reload)
-  const [lastFetchedStatus, setLastFetchedStatus] = useState({});
+  const [lastFetchedStatus, setLastFetchedStatus] = useState<{ [key: string]: string }>({});
   // Modal for check update messages
   const [showCheckModal, setShowCheckModal] = useState(false);
   const [checkModalMsg, setCheckModalMsg] = useState('');
 
-  async function checkOrderUpdate(order) {
+  async function checkOrderUpdate(order: Order): Promise<void> {
     if (!profile.email || !order.uniqueCode) {
       setCheckModalMsg('Missing email or unique code.');
       setShowCheckModal(true);
@@ -139,7 +139,8 @@ const Home: React.FC = () => {
     const [dropStart, dropEnd] = getDropoffWindow(order);
     const [delivStart, delivEnd] = getDeliveryWindow(order);
     const status = order.status;
-    const lastStatus = lastFetchedStatus[order.orderId || order.order_id];
+  const key = String(order.orderId ?? order.order_id ?? '');
+  const lastStatus = lastFetchedStatus[key];
 
     // 1. Before drop-off/pickup window
     if (dropStart && now < dropStart) {
@@ -171,7 +172,7 @@ const Home: React.FC = () => {
     // 4. After delivery window (up to 24h)
     if (delivEnd && now > delivEnd) {
       // Only allow fetch if not delivered/failed and within 24h
-      const hoursSinceEnd = (now - delivEnd) / (1000 * 60 * 60);
+  const hoursSinceEnd = (now.getTime() - (delivEnd?.getTime?.() ?? 0)) / (1000 * 60 * 60);
       if ((status === 'delivered' || status === 'failed' || lastStatus === 'delivered' || lastStatus === 'failed') || hoursSinceEnd > 24) {
         setCheckModalMsg('Order is complete. No further updates available.');
         setShowCheckModal(true);
@@ -380,7 +381,6 @@ const Home: React.FC = () => {
                  {activeOrders.filter(order => typeof order.orderId === 'string' || typeof order.orderId === 'number' || !order.orderId).map((order: Order) => {
                   // Always treat cylinderType as a string for .includes
                   const cylinderTypeStr = typeof order.cylinderType === 'string' ? order.cylinderType : '';
-                  const isOrderGas = !cylinderTypeStr.includes('Cylinder');
                   return (
                     <div key={order.orderId ?? order.uniqueCode} style={{ width: '100%' }}>
                       <OrderCard

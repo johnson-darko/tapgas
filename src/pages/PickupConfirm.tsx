@@ -141,7 +141,19 @@ const PickupConfirm: React.FC = () => {
         {error && <div style={{ color: '#ef4444', fontWeight: 600, marginBottom: '1rem' }}>{error}</div>}
         {foundOrder && !confirmed && (
           <div style={{ width: '100%', marginBottom: '2rem' }}>
-            <OrderCard order={foundOrder} role="driver" />
+            <OrderCard order={{
+              ...foundOrder,
+              customerName: foundOrder.customerName ?? '',
+              address: foundOrder.address ?? '',
+              cylinderType: foundOrder.cylinderType ?? '',
+              status: foundOrder.status ?? '',
+              date: foundOrder.date ?? '',
+              uniqueCode: Number(foundOrder.uniqueCode) || 0,
+              amountPaid: Number(foundOrder.amountPaid) || 0,
+              location: foundOrder.location && typeof foundOrder.location.lat === 'number' && typeof foundOrder.location.lng === 'number'
+                ? { lat: foundOrder.location.lat, lng: foundOrder.location.lng }
+                : undefined,
+            }} role="driver" />
             <button
               onClick={handlePickup}
               style={{

@@ -95,7 +95,6 @@ const DriverOrders: React.FC = () => {
 
   // Info/help popup state
   const [showInfo, setShowInfo] = useState(false);
-  const [showInfoIdx, setShowInfoIdx] = useState<null | string | number>(null);
 
   // Modal for sending order updates
   const [showSendModal, setShowSendModal] = useState(false);
@@ -208,7 +207,7 @@ const DriverOrders: React.FC = () => {
                   const updates = updatedOrders.map(o => ({
                     orderId: o.orderId || o.order_id,
                     status: o.status,
-                    failedNote: o.failedNote || o.failed_note || null
+                    failedNote: o.failedNote || null
                   }));
                   const res = await fetch('/driver/update-orders', {
                     method: 'POST',
@@ -316,7 +315,7 @@ const DriverOrders: React.FC = () => {
               amountPaid: order.amountPaid ?? 0,
               location: order.location && typeof order.location.lat === 'number' && typeof order.location.lng === 'number'
                 ? { lat: order.location.lat, lng: order.location.lng }
-                : { lat: 0, lng: 0 },
+                : undefined,
             };
             return (
               <div key={order.orderId} style={{ width: '100%' }}>
@@ -361,7 +360,7 @@ const DriverOrders: React.FC = () => {
                     <>
                       <button
                         onClick={() => {
-                          setDeliverModalOrderId(order.orderId);
+                          setDeliverModalOrderId(order.orderId ?? null);
                           setDeliverCode('');
                           setDeliverMatch(false);
                         }}

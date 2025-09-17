@@ -54,7 +54,22 @@ const History: React.FC = () => {
             You have no completed deliveries yet.<br />Your delivered orders will appear here for easy reference.
           </div>
         ) : (
-           deliveredOrders.map((order: Order) => <OrderCard key={order.orderId} order={order} />)
+           deliveredOrders.map((order: Order) => {
+             const normalizedOrder = {
+               ...order,
+               customerName: order.customerName ?? '',
+               address: order.address ?? '',
+               cylinderType: order.cylinderType ?? '',
+               status: order.status ?? '',
+               date: order.date ?? '',
+               uniqueCode: Number(order.uniqueCode) || 0,
+               amountPaid: Number(order.amountPaid) || 0,
+               location: order.location && typeof order.location.lat === 'number' && typeof order.location.lng === 'number'
+                 ? { lat: order.location.lat, lng: order.location.lng }
+                 : undefined,
+             };
+             return <OrderCard key={order.orderId} order={normalizedOrder} />;
+           })
         )
       ) : (
         failedOrders.length === 0 ? (
@@ -76,7 +91,19 @@ const History: React.FC = () => {
         ) : (
            failedOrders.filter(order => !!order.orderId).map((order: Order) => (
             <div key={order.orderId} style={{ width: '100%' }}>
-              <OrderCard order={order} />
+              <OrderCard order={{
+                ...order,
+                customerName: order.customerName ?? '',
+                address: order.address ?? '',
+                cylinderType: order.cylinderType ?? '',
+                status: order.status ?? '',
+                date: order.date ?? '',
+                uniqueCode: Number(order.uniqueCode) || 0,
+                amountPaid: Number(order.amountPaid) || 0,
+                location: order.location && typeof order.location.lat === 'number' && typeof order.location.lng === 'number'
+                  ? { lat: order.location.lat, lng: order.location.lng }
+                  : undefined,
+              }} />
               {order.failedNote && (
                 <div style={{
                   background: theme === 'dark' ? '#ef4444' : '#fb2424ff',

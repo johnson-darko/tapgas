@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import LoginModal from '../components/LoginModal';
 import { saveOrder, getOrders } from '../utils/orderStorage';
-import type { Order } from '../utils/orderStorage';
+import type { Order as OrderType } from '../utils/orderStorage';
 import { useTheme } from '../useTheme';
 
 const cylinderOptions = [
@@ -143,7 +143,7 @@ const Order: React.FC = () => {
         if (data && data.success && data.order) {
           console.log('Backend order response:', data.order);
           // Remove any local temp order with the same uniqueCode
-          const orders = getOrders().filter((o: Order) => {
+          const orders = getOrders().filter((o: OrderType) => {
             // Remove any order with the same uniqueCode or a numeric orderId (temp)
             if (o.uniqueCode === localUniqueCode) return false;
             if (typeof o.orderId === 'number') return false;
