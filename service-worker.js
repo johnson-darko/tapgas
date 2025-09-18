@@ -1,3 +1,13 @@
+// Listen for messages from the main thread to schedule notifications
+self.addEventListener('message', event => {
+  if (event.data && event.data.type === 'schedule-notification') {
+    const { title, options, delayMs } = event.data;
+    // Use setTimeout to schedule notification (note: survives as long as SW is alive)
+    setTimeout(() => {
+      self.registration.showNotification(title, options);
+    }, delayMs || 2 * 60 * 1000); // Default: 2 minutes
+  }
+});
 const CACHE_NAME = 'tapgas-cache-v2'; // Increment for each deploy
 const urlsToCache = [
   '/tapgas/',
