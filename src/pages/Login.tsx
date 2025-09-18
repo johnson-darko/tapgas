@@ -38,7 +38,9 @@ const Login: React.FC = () => {
       if (!res.ok) throw new Error('Invalid code');
       const data = await res.json();
       // Save token for remember me
-      localStorage.setItem('authToken', data.token);
+      if (data.token) {
+        localStorage.setItem('authToken', data.token);
+      }
       window.location.href = '/'; // Redirect to home
     } catch (err: any) {
       setError(err.message || 'Error verifying code');

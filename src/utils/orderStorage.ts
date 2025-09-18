@@ -1,11 +1,16 @@
 // Fetch assigned orders for the logged-in driver from backend
 export async function fetchAssignedOrdersForDriver(): Promise<{ success: boolean; orders: Order[]; error?: string }> {
   try {
-  const res = await fetch(`${import.meta.env.VITE_API_BASE || ''}/driver/orders`, { credentials: 'include' });
+    const token = localStorage.getItem('authToken');
+    const res = await fetch(`${import.meta.env.VITE_API_BASE || ''}/driver/orders`, {
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    });
     if (!res.ok) throw new Error('Failed to fetch assigned orders');
     const data = await res.json();
     if (!data.success || !Array.isArray(data.orders)) throw new Error('Invalid response');
-  // Do not overwrite local storage here; let the caller handle merging and saving
+    // Do not overwrite local storage here; let the caller handle merging and saving
     return { success: true, orders: data.orders };
   } catch (err: unknown) {
     let msg = 'Unknown error';
@@ -170,7 +175,12 @@ export function mergeOrders(newOrders: Partial<Order>[]) {
 // Fetch all orders and drivers from backend (admin only)
 export async function syncOrdersFromBackend(): Promise<{ success: boolean; count: number; drivers?: string[]; error?: string }> {
   try {
-  const res = await fetch(`${import.meta.env.VITE_API_BASE || ''}/orders`, { credentials: 'include' });
+    const token = localStorage.getItem('authToken');
+    const res = await fetch(`${import.meta.env.VITE_API_BASE || ''}/orders`, {
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    });
     if (!res.ok) throw new Error('Failed to fetch orders');
     const data = await res.json();
     if (!data.success || !Array.isArray(data.orders)) throw new Error('Invalid response');

@@ -52,12 +52,14 @@ const LoginModal: React.FC<LoginModalProps> = ({ email: initialEmail = '', onSuc
       });
       if (!res.ok) throw new Error('Invalid code');
       const data = await res.json();
-      localStorage.setItem('authToken', 'session'); // Mark as logged in
+      if (data.token) {
+        localStorage.setItem('authToken', data.token); // Store the real JWT
+      }
       // Save email and role to profile
       const profile = getProfile();
       saveProfile({ ...profile, email, role: data.user.role || 'customer' });
-  onSuccess();
-  window.location.reload(); // Reload to update profile/nav with new role
+      onSuccess();
+      window.location.reload(); // Reload to update profile/nav with new role
     } catch (err: any) {
       setError(err.message || 'Error verifying code');
     }

@@ -42,10 +42,13 @@ const Profile: React.FC = () => {
             e.preventDefault();
             // Sync to backend first
             try {
+              const token = localStorage.getItem('authToken');
               const res = await fetch(`${import.meta.env.VITE_API_BASE || ''}/profile`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
+                headers: {
+                  'Content-Type': 'application/json',
+                  ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                },
                 body: JSON.stringify({ name: editName, phone_number: editPhone }),
               });
               if (!res.ok) throw new Error('Failed to update profile in cloud');

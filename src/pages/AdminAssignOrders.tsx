@@ -81,10 +81,13 @@ const AdminAssignOrders: React.FC = () => {
       const clusterOrders = clusters[assigningCluster];
       const orderIds = clusterOrders.map(o => o.orderId).filter(Boolean);
       try {
+  const token = localStorage.getItem('authToken');
   const res = await fetch(`${import.meta.env.VITE_API_BASE || ''}/assign-cluster`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
           body: JSON.stringify({ driver_email: selectedDriver, order_ids: orderIds }),
         });
         const data = await res.json();

@@ -131,12 +131,18 @@ const Order: React.FC = () => {
       deliveryWindow: orderType === 'gas' ? (deliveryWindow ?? '') : '',
     };
 
-  fetch(`${import.meta.env.VITE_API_BASE || ''}/order`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify(newOrder),
-    })
+    const token = localStorage.getItem('authToken');
+    const headers = {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    };
+    console.log('[Order] JWT from localStorage:', token);
+    console.log('[Order] Headers for fetch:', headers);
+    fetch(`${import.meta.env.VITE_API_BASE || ''}/order`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(newOrder),
+      })
       .then(async res => {
         if (!res.ok) throw new Error('Failed to save order in cloud');
         const data = await res.json();

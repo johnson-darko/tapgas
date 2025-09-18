@@ -209,10 +209,13 @@ const DriverOrders: React.FC = () => {
                     status: o.status,
                     failedNote: o.failedNote || null
                   }));
+                  const token = localStorage.getItem('authToken');
                   const res = await fetch(`${import.meta.env.VITE_API_BASE || ''}/driver/update-orders`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    credentials: 'include',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                    },
                     body: JSON.stringify({ updates }),
                   });
                   const data = await res.json();
