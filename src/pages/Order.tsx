@@ -197,17 +197,65 @@ const Order: React.FC = () => {
         }
         if (data && data.success && data.order) {
           console.log('Backend order response:', data.order);
-          // Remove any local temp order with the same uniqueCode
+          // Remove any local temp order with the same uniqueCode or a numeric orderId (temp)
           const orders = getOrders().filter((o: OrderType) => {
-            // Remove any order with the same uniqueCode or a numeric orderId (temp)
             if (o.uniqueCode === localUniqueCode) return false;
             if (typeof o.orderId === 'number') return false;
             return true;
           });
           localStorage.setItem('tapgas_orders', JSON.stringify(orders));
           console.log('Saving order to local storage:', data.order);
-          // Save backend order (with backend orderId) locally
           saveOrder(data.order);
+
+          // Schedule local notification in 2 minutes (if supported)
+          if ('Notification' in window) {
+            Notification.requestPermission().then(permission => {
+              if (permission === 'granted') {
+                // Try NotificationTrigger API (showTrigger) if available
+                if ('showTrigger' in Notification.prototype) {
+                  try {
+                    const timestamp = Date.now() + 2 * 60 * 1000;
+                    new Notification('TapGas Order Reminder', {
+                      body: 'Remember to follow up on your recent TapGas order!',
+                      icon: '/tapgas/vite.svg',
+                      tag: 'order-reminder',
+                      showTrigger: { timestamp },
+                    });
+                    console.log('[TapGas] Scheduled notification with showTrigger for', new Date(timestamp));
+                  } catch (err) {
+                    console.warn('[TapGas] showTrigger scheduling failed, falling back to service worker.', err);
+                    if ('serviceWorker' in navigator) {
+                      navigator.serviceWorker.ready.then(reg => {
+                        reg.active?.postMessage({
+                          type: 'schedule-notification',
+                          title: 'TapGas Order Reminder',
+                          options: {
+                            body: 'Remember to follow up on your recent TapGas order!',
+                            icon: '/tapgas/vite.svg',
+                            tag: 'order-reminder',
+                          },
+                          delayMs: 2 * 60 * 1000,
+                        });
+                      });
+                    }
+                  }
+                } else if ('serviceWorker' in navigator) {
+                  navigator.serviceWorker.ready.then(reg => {
+                    reg.active?.postMessage({
+                      type: 'schedule-notification',
+                      title: 'TapGas Order Reminder',
+                      options: {
+                        body: 'Remember to follow up on your recent TapGas order!',
+                        icon: '/tapgas/vite.svg',
+                        tag: 'order-reminder',
+                      },
+                      delayMs: 2 * 60 * 1000,
+                    });
+                  });
+                }
+              }
+            });
+          }
         }
         setShowFillAnim(false);
         setSuccess(true);

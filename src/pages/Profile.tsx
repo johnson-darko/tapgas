@@ -19,6 +19,18 @@ const Profile: React.FC = () => {
       ? `Address Coordinates: ${lastOrder.location.lat},${lastOrder.location.lng}`
       : `Address: ${lastOrder.address}`;
   }
+  // Notification permission status
+  let notificationStatus = '';
+  if (typeof window !== 'undefined' && 'Notification' in window) {
+    if (Notification.permission === 'granted') {
+      notificationStatus = 'Notifications are enabled.';
+    } else if (Notification.permission === 'denied') {
+      notificationStatus = 'Notifications are blocked. Please enable them in your browser settings.';
+    } else {
+      notificationStatus = 'Notifications are not enabled yet.';
+    }
+  }
+
   return (
     <div style={{
       padding: '5rem 0.5rem 1.5rem 0.5rem',
@@ -28,6 +40,20 @@ const Profile: React.FC = () => {
       <h2 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '1.2rem' }}>
         User Profile
       </h2>
+      {/* Notification status */}
+      <div style={{
+        background: '#e0e7ef',
+        color: '#0f172a',
+        borderRadius: '0.7rem',
+        padding: '0.5rem 1.2rem',
+        fontWeight: 500,
+        fontSize: '1rem',
+        margin: '0 auto 1.2rem auto',
+        maxWidth: 320,
+        letterSpacing: '0.05em',
+      }}>
+        <span role="img" aria-label="bell">🔔</span> {notificationStatus}
+      </div>
       {profile.referral_code && (
         <div style={{
           background: '#fbbf24',
