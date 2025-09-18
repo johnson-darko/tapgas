@@ -14,5 +14,5 @@ export default defineConfig({
   '/profile': 'http://localhost:5020',
     },
   },
-  base: '/tapgas/', // Must match your repo name!
+  base: '/tapgas/', // hMust match your repo name!
 });
