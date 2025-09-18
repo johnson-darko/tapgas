@@ -11,10 +11,11 @@ const Login: React.FC = () => {
     setLoading(true);
     setError('');
     try {
-  const res = await fetch(`${import.meta.env.VITE_API_BASE || ''}/auth/send-code`, {
+      const res = await fetch(`${import.meta.env.VITE_API_BASE || ''}/auth/send-code`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
+        credentials: 'include',
       });
       if (!res.ok) throw new Error('Failed to send code');
       setStep('code');
@@ -28,10 +29,11 @@ const Login: React.FC = () => {
     setLoading(true);
     setError('');
     try {
-  const res = await fetch(`${import.meta.env.VITE_API_BASE || ''}/auth/verify-code`, {
+      const res = await fetch(`${import.meta.env.VITE_API_BASE || ''}/auth/verify-code`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, code }),
+        credentials: 'include',
       });
       if (!res.ok) throw new Error('Invalid code');
       const data = await res.json();
