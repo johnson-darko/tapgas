@@ -29,8 +29,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ email: initialEmail = '', onSuc
       const res = await fetch(`${import.meta.env.VITE_API_BASE || ''}/auth/send-code`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
-        credentials: 'include',
+        body: JSON.stringify({ email })
       });
       if (!res.ok) throw new Error('Failed to send code');
       setStep('code');
@@ -47,8 +46,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ email: initialEmail = '', onSuc
       const res = await fetch(`${import.meta.env.VITE_API_BASE || ''}/auth/verify-code`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, code }),
-        credentials: 'include',
+        body: JSON.stringify({ email, code })
       });
       if (!res.ok) throw new Error('Invalid code');
       const data = await res.json();

@@ -1,6 +1,3 @@
-import { useEffect } from 'react';
-// Capacitor Local Notifications
-import { LocalNotifications } from '@capacitor/local-notifications';
 import React, { useState } from 'react';
 import LoginModal from '../components/LoginModal';
 import { saveOrder, getOrders } from '../utils/orderStorage';
@@ -19,10 +16,6 @@ const paymentOptions = [
 ];
 
 const Order: React.FC = () => {
-  // Request permission for local notifications on mount (Capacitor)
-  useEffect(() => {
-    LocalNotifications.requestPermissions();
-  }, []);
   // Referral code input state
   const [referralCode, setReferralCode] = useState('');
   // Track if user has already been referred (from profile/localStorage)
@@ -202,7 +195,7 @@ const Order: React.FC = () => {
           setShowFillAnim(false);
           throw new Error('Failed to save order in cloud');
         }
-  if (data && data.success && data.order) {
+        if (data && data.success && data.order) {
           console.log('Backend order response:', data.order);
           // Remove any local temp order with the same uniqueCode or a numeric orderId (temp)
           const orders = getOrders().filter((o: OrderType) => {
@@ -214,18 +207,56 @@ const Order: React.FC = () => {
           console.log('Saving order to local storage:', data.order);
           saveOrder(data.order);
 
-          // Schedule local notification in 2 minutes (Capacitor)
-          LocalNotifications.schedule({
-            notifications: [
-              {
-                title: 'TapGas Order Reminder',
-                body: 'Remember to follow up on your recent TapGas order!',
-                id: 1,
-                schedule: { at: new Date(Date.now() + 2 * 60 * 1000) },
-                actionTypeId: '',
-              },
-            ],
-          });
+          // Schedule local notification in 2 minutes (if supported)
+          if ('Notification' in window) {
+            Notification.requestPermission().then(permission => {
+              if (permission === 'granted') {
+                // Try NotificationTrigger API (showTrigger) if available
+                if ('showTrigger' in Notification.prototype) {
+                  try {
+                    const timestamp = Date.now() + 2 * 60 * 1000;
+                    // @ts-ignore: showTrigger is experimental and not in TS types
+                    new Notification('TapGas Order Reminder', {
+                      body: 'Remember to follow up on your recent TapGas order!',
+                      icon: '/tapgas/vite.svg',
+                      tag: 'order-reminder',
+                      /* showTrigger: { timestamp }, // Uncomment if your TS/JS environment supports it */
+                    });
+                    console.log('[TapGas] Scheduled notification (showTrigger, if supported) for', new Date(timestamp));
+                  } catch (err) {
+                    console.warn('[TapGas] showTrigger scheduling failed, falling back to service worker.', err);
+                    if ('serviceWorker' in navigator) {
+                      navigator.serviceWorker.ready.then(reg => {
+                        reg.active?.postMessage({
+                          type: 'schedule-notification',
+                          title: 'TapGas Order Reminder',
+                          options: {
+                            body: 'Remember to follow up on your recent TapGas order!',
+                            icon: '/tapgas/vite.svg',
+                            tag: 'order-reminder',
+                          },
+                          delayMs: 2 * 60 * 1000,
+                        });
+                      });
+                    }
+                  }
+                } else if ('serviceWorker' in navigator) {
+                  navigator.serviceWorker.ready.then(reg => {
+                    reg.active?.postMessage({
+                      type: 'schedule-notification',
+                      title: 'TapGas Order Reminder',
+                      options: {
+                        body: 'Remember to follow up on your recent TapGas order!',
+                        icon: '/tapgas/vite.svg',
+                        tag: 'order-reminder',
+                      },
+                      delayMs: 2 * 60 * 1000,
+                    });
+                  });
+                }
+              }
+            });
+          }
         }
         setShowFillAnim(false);
         setSuccess(true);

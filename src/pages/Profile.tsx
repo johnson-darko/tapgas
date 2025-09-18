@@ -20,16 +20,26 @@ const Profile: React.FC = () => {
       : `Address: ${lastOrder.address}`;
   }
   // Notification permission status
+  const [notifPerm, setNotifPerm] = React.useState(
+    typeof window !== 'undefined' && 'Notification' in window ? Notification.permission : 'default'
+  );
   let notificationStatus = '';
-  if (typeof window !== 'undefined' && 'Notification' in window) {
-    if (Notification.permission === 'granted') {
-      notificationStatus = 'Notifications are enabled.';
-    } else if (Notification.permission === 'denied') {
-      notificationStatus = 'Notifications are blocked. Please enable them in your browser settings.';
-    } else {
-      notificationStatus = 'Notifications are not enabled yet.';
-    }
+  if (notifPerm === 'granted') {
+    notificationStatus = 'Notifications are enabled.';
+  } else if (notifPerm === 'denied') {
+    notificationStatus = 'Notifications are blocked. Please enable them in your browser settings.';
+  } else {
+    notificationStatus = 'Notifications are not enabled yet.';
   }
+
+  // Handler for requesting notification permission
+  const handleRequestNotif = () => {
+    if ('Notification' in window) {
+      Notification.requestPermission().then(perm => {
+        setNotifPerm(perm);
+      });
+    }
+  };
 
   return (
     <div style={{
@@ -51,8 +61,30 @@ const Profile: React.FC = () => {
         margin: '0 auto 1.2rem auto',
         maxWidth: 320,
         letterSpacing: '0.05em',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: '0.5rem',
       }}>
         <span role="img" aria-label="bell">🔔</span> {notificationStatus}
+        {notifPerm !== 'granted' && notifPerm !== 'denied' && (
+          <button
+            onClick={handleRequestNotif}
+            style={{
+              background: '#38bdf8',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '1.2rem',
+              padding: '0.5rem 1.2rem',
+              fontWeight: 600,
+              fontSize: '1rem',
+              cursor: 'pointer',
+              marginTop: '0.2rem',
+            }}
+          >
+            Enable Notifications
+          </button>
+        )}
       </div>
       {profile.referral_code && (
         <div style={{
