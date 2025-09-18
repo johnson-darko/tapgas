@@ -1,7 +1,7 @@
 // Fetch assigned orders for the logged-in driver from backend
 export async function fetchAssignedOrdersForDriver(): Promise<{ success: boolean; orders: Order[]; error?: string }> {
   try {
-  const res = await fetch('/driver/orders', { credentials: 'include' });
+  const res = await fetch(`${import.meta.env.VITE_API_BASE || ''}/driver/orders`, { credentials: 'include' });
     if (!res.ok) throw new Error('Failed to fetch assigned orders');
     const data = await res.json();
     if (!data.success || !Array.isArray(data.orders)) throw new Error('Invalid response');
@@ -170,7 +170,7 @@ export function mergeOrders(newOrders: Partial<Order>[]) {
 // Fetch all orders and drivers from backend (admin only)
 export async function syncOrdersFromBackend(): Promise<{ success: boolean; count: number; drivers?: string[]; error?: string }> {
   try {
-    const res = await fetch('/orders', { credentials: 'include' });
+  const res = await fetch(`${import.meta.env.VITE_API_BASE || ''}/orders`, { credentials: 'include' });
     if (!res.ok) throw new Error('Failed to fetch orders');
     const data = await res.json();
     if (!data.success || !Array.isArray(data.orders)) throw new Error('Invalid response');

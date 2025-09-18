@@ -131,7 +131,7 @@ const Order: React.FC = () => {
       deliveryWindow: orderType === 'gas' ? (deliveryWindow ?? '') : '',
     };
 
-    fetch('/order', {
+  fetch(`${import.meta.env.VITE_API_BASE || ''}/order`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',

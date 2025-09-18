@@ -11,7 +11,7 @@ const Login: React.FC = () => {
     setLoading(true);
     setError('');
     try {
-      const res = await fetch('/auth/send-code', {
+  const res = await fetch(`${import.meta.env.VITE_API_BASE || ''}/auth/send-code`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
@@ -28,7 +28,7 @@ const Login: React.FC = () => {
     setLoading(true);
     setError('');
     try {
-      const res = await fetch('/auth/verify-code', {
+  const res = await fetch(`${import.meta.env.VITE_API_BASE || ''}/auth/verify-code`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, code }),

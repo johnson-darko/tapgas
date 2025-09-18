@@ -81,7 +81,7 @@ const AdminAssignOrders: React.FC = () => {
       const clusterOrders = clusters[assigningCluster];
       const orderIds = clusterOrders.map(o => o.orderId).filter(Boolean);
       try {
-  const res = await fetch('/assign-cluster', {
+  const res = await fetch(`${import.meta.env.VITE_API_BASE || ''}/assign-cluster`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',

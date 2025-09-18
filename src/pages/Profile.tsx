@@ -42,7 +42,7 @@ const Profile: React.FC = () => {
             e.preventDefault();
             // Sync to backend first
             try {
-              const res = await fetch('/profile', {
+              const res = await fetch(`${import.meta.env.VITE_API_BASE || ''}/profile`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',

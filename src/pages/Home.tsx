@@ -193,7 +193,7 @@ const Home: React.FC = () => {
 
     // --- Fetch from cloud ---
     try {
-      const res = await fetch(`/order/check`, {
+  const res = await fetch(`${import.meta.env.VITE_API_BASE || ''}/order/check`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: profile.email, uniqueCode: order.uniqueCode })

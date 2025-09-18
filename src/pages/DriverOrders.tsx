@@ -209,7 +209,7 @@ const DriverOrders: React.FC = () => {
                     status: o.status,
                     failedNote: o.failedNote || null
                   }));
-                  const res = await fetch('/driver/update-orders', {
+                  const res = await fetch(`${import.meta.env.VITE_API_BASE || ''}/driver/update-orders`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     credentials: 'include',
