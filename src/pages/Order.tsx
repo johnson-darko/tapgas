@@ -215,13 +215,14 @@ const Order: React.FC = () => {
                 if ('showTrigger' in Notification.prototype) {
                   try {
                     const timestamp = Date.now() + 2 * 60 * 1000;
+                    // Native browser NotificationTrigger API is not yet in TypeScript; skip showTrigger for now
                     new Notification('TapGas Order Reminder', {
                       body: 'Remember to follow up on your recent TapGas order!',
                       icon: '/tapgas/vite.svg',
                       tag: 'order-reminder',
-                      showTrigger: { timestamp },
+                      // showTrigger: { timestamp }, // Uncomment if/when supported by your TS/JS environment
                     });
-                    console.log('[TapGas] Scheduled notification with showTrigger for', new Date(timestamp));
+                    console.log('[TapGas] Scheduled notification (no showTrigger property due to TS error) for', new Date(timestamp));
                   } catch (err) {
                     console.warn('[TapGas] showTrigger scheduling failed, falling back to service worker.', err);
                     if ('serviceWorker' in navigator) {
