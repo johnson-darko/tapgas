@@ -12,6 +12,11 @@
     "deploy": "gh-pages -d dist"
   },
   "dependencies": {
+    "@capacitor/android": "^7.4.3",
+    "@capacitor/cli": "^7.4.3",
+    "@capacitor/core": "^7.4.3",
+    "@capacitor/ios": "^7.4.3",
+    "@capacitor/local-notifications": "^7.0.3",
     "chart.js": "^4.5.0",
     "leaflet": "^1.9.4",
     "qrcode.react": "^4.2.0",
