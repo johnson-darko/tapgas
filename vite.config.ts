@@ -7,12 +7,12 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-  '/auth': 'http://localhost:5020',
-  '/order': 'http://localhost:5020',
-  '/driver': 'http://localhost:5020',
-  '/assign-cluster': 'http://localhost:5020',
-  '/profile': 'http://localhost:5020',
+      '/auth': 'http://localhost:5020',
+      '/order': 'http://localhost:5020',
+      '/driver': 'http://localhost:5020',
+      '/assign-cluster': 'http://localhost:5020',
+      '/profile': 'http://localhost:5020',
     },
   },
-  base: process.env.VITE_CAPACITOR === 'true' ? './' : '/tapgas/', // Must match your repo name!
+  base: '/tapgas/', // Always use your repo name for GitHub Pages and remote loading
 });
