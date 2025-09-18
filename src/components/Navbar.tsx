@@ -84,13 +84,14 @@ function PromoTooltipIcon({ theme }: PromoTooltipIconProps) {
             }}
             aria-label="Close promo"
           >✕</button>
-          <div style={{ fontWeight: 700, marginBottom: '0.5rem', paddingRight: '1.5rem' }}>Launch Promo</div>
-          <div>Get a <span style={{ color: '#0ea5e9' }}>FREE Gas Level Indicator</span> with your first LPG refill or cylinder purchase!</div>
-          <div style={{ marginTop: '0.5rem', fontSize: '0.95rem' }}>
-            Limited to the first 500 signups.<br />
+          <div style={{ fontWeight: 700, marginBottom: '0.5rem', paddingRight: '1.5rem' }}>Refer &amp; Earn</div>
+          <div>
+            Share your referral code with friends!<br />
+            <span style={{ color: '#0ea5e9', fontWeight: 700 }}>Earn ₵1.50</span> in rewards for every friend who places their first LPG refill order using your code.<br />
             <span style={{ color: theme === 'dark' ? '#fbbf24' : '#ef4444', fontWeight: 700 }}>
-              Your LPG Gas order/Cylinder arrives as usual.<br />
-              The free indicator will be delivered separately within 2–3 weeks.
+              Your friend must enter your code when ordering.<br />
+              Rewards are credited after their first delivery.<br />
+              <span style={{ color: '#0ea5e9' }}>Your referral rewards are automatically applied as a discount to your own future orders.</span>
             </span>
           </div>
         </div>
@@ -99,12 +100,14 @@ function PromoTooltipIcon({ theme }: PromoTooltipIconProps) {
   );
 }
 import React, { useState } from 'react';
+import { useReferralReward } from '../utils/useReferralReward';
 import { useTheme } from '../useTheme';
 
 
 const Navbar: React.FC = () => {
   const { theme, toggleTheme } = useTheme();
   const [offlineMsg, setOfflineMsg] = useState<string | null>(null);
+  const referralReward = useReferralReward();
 
   const handleRefresh = async () => {
     try {
@@ -175,7 +178,21 @@ const Navbar: React.FC = () => {
           🔄
         </button>
         {/* Promo tooltip icon */}
-        <PromoTooltipIcon theme={theme} />
+        <span style={{ display: 'flex', alignItems: 'center', position: 'relative' }}>
+          <PromoTooltipIcon theme={theme} />
+          <span style={{ width: 10, display: 'inline-block' }} />
+          <span style={{
+            fontWeight: 700,
+            color: theme === 'dark' ? '#fbbf24' : '#0ea5e9',
+            fontSize: '1.1rem',
+            minWidth: 48,
+            display: 'inline-block',
+            textAlign: 'right',
+            letterSpacing: '0.01em',
+          }}>
+            ₵ {referralReward.toFixed(2)}
+          </span>
+        </span>
         <button onClick={toggleTheme} style={{
           marginLeft: '1rem',
           background: 'none',

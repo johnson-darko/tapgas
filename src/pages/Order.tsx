@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import LoginModal from '../components/LoginModal';
 import { saveOrder, getOrders } from '../utils/orderStorage';
@@ -16,8 +15,27 @@ const paymentOptions = [
   { label: 'Mobile Money', value: 'momo' },
 ];
 
-
 const Order: React.FC = () => {
+  // Referral code input state
+  const [referralCode, setReferralCode] = useState('');
+  // Track if user has already been referred (from profile/localStorage)
+  const [alreadyReferred, setAlreadyReferred] = useState(false);
+  const [myReferralCode, setMyReferralCode] = useState('');
+  // Modal state for own referral code error
+  const [showOwnReferralModal, setShowOwnReferralModal] = useState(false);
+  // New modal state for invalid referral code
+  const [showInvalidReferralModal, setShowInvalidReferralModal] = useState(false);
+
+  React.useEffect(() => {
+    // Always load referral_code from profile for validation
+    try {
+      const profile = JSON.parse(localStorage.getItem('profile') || '{}');
+      if (profile && profile.referral_code) setMyReferralCode(profile.referral_code);
+      if (profile && profile.referred_by) setAlreadyReferred(true);
+    } catch (e) {
+      // ignore
+    }
+  }, []);
   const [showLogin, setShowLogin] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(() => !!localStorage.getItem('authToken'));
   const { theme } = useTheme();
@@ -36,7 +54,7 @@ const Order: React.FC = () => {
     // Example: "4:30–9:00 AM" or "4:30–8:00 PM"
     const match = windowStr.match(/(\d{1,2}):(\d{2})[–-](\d{1,2}):(\d{2}) ?([AP]M)/i);
     if (!match) return [null, null];
-    let [, startH, startM, endH, endM, ampm] = match;
+    const [, startH, startM, endH, endM, ampm] = match;
     let sH = parseInt(startH, 10);
     let sM = parseInt(startM, 10);
     let eH = parseInt(endH, 10);
@@ -93,6 +111,11 @@ const Order: React.FC = () => {
       setShowLogin(true);
       return;
     }
+    // Frontend validation: block using own referral code
+    if (referralCode && myReferralCode && referralCode.trim() === myReferralCode) {
+      setShowOwnReferralModal(true);
+      return;
+    }
     // Enforce required fields for LPG Gas Refill
     if (orderType === 'gas') {
       if (!serviceType) {
@@ -111,7 +134,8 @@ const Order: React.FC = () => {
     setShowFillAnim(true);
     // Build order object (no orderId)
     const localUniqueCode = Math.floor(100000 + Math.random() * 900000);
-    const newOrder = {
+    // Use 'any' to allow dynamic fields like referralCode
+    const newOrder: any = {
       customerName: 'User', // Replace with actual user if available
       address,
       location: (() => {
@@ -130,6 +154,10 @@ const Order: React.FC = () => {
       timeSlot: orderType === 'gas' ? (timeSlot ?? '') : '',
       deliveryWindow: orderType === 'gas' ? (deliveryWindow ?? '') : '',
     };
+    // If referral code is entered and user not already referred, add to order
+    if (referralCode && !alreadyReferred) {
+      newOrder.referralCode = referralCode.trim();
+    }
 
     const token = localStorage.getItem('authToken');
     const headers = {
@@ -139,13 +167,34 @@ const Order: React.FC = () => {
     console.log('[Order] JWT from localStorage:', token);
     console.log('[Order] Headers for fetch:', headers);
     fetch(`${import.meta.env.VITE_API_BASE || ''}/order`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(newOrder),
-      })
+      method: 'POST',
+      headers,
+      body: JSON.stringify(newOrder),
+    })
       .then(async res => {
-        if (!res.ok) throw new Error('Failed to save order in cloud');
-        const data = await res.json();
+        let data;
+        try {
+          data = await res.json();
+        } catch {
+          setShowFillAnim(false);
+          setShowOwnReferralModal(true);
+        }
+        if (!res.ok) {
+          // If backend returns specific error for own referral code, show alert/modal and stop loading
+          if (data && data.error && data.error.includes('own referral code')) {
+            setShowFillAnim(false);
+            setShowOwnReferralModal(true);
+            return;
+          }
+          // New: Handle invalid referral code error
+          if (data && data.error && data.error.toLowerCase().includes('invalid referral code')) {
+            setShowFillAnim(false);
+            setShowInvalidReferralModal(true);
+            return;
+          }
+          setShowFillAnim(false);
+          throw new Error('Failed to save order in cloud');
+        }
         if (data && data.success && data.order) {
           console.log('Backend order response:', data.order);
           // Remove any local temp order with the same uniqueCode
@@ -183,6 +232,94 @@ const Order: React.FC = () => {
       position: 'relative',
       overflow: 'hidden',
     }}>
+      {/* Modal for own referral code error */}
+      {showOwnReferralModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
+          background: 'rgba(0,0,0,0.4)',
+          zIndex: 10000,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}>
+          <div style={{
+            background: '#fff',
+            borderRadius: '1rem',
+            padding: '2rem',
+            boxShadow: '0 2px 16px rgba(0,0,0,0.15)',
+            minWidth: 300,
+            textAlign: 'center',
+          }}>
+            <div style={{ fontWeight: 700, fontSize: '1.2rem', color: '#e11d48', marginBottom: '1rem' }}>
+              You cannot use your own referral code.
+            </div>
+            <button
+              style={{
+                background: '#38bdf8',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '0.5rem',
+                padding: '0.7rem 1.5rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                fontSize: '1rem',
+                marginTop: '0.5rem',
+              }}
+              onClick={() => setShowOwnReferralModal(false)}
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      )}
+      {/* New modal for invalid referral code */}
+      {showInvalidReferralModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
+          background: 'rgba(0,0,0,0.4)',
+          zIndex: 10000,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}>
+          <div style={{
+            background: '#fff',
+            borderRadius: '1rem',
+            padding: '2rem',
+            boxShadow: '0 2px 16px rgba(0,0,0,0.15)',
+            minWidth: 300,
+            textAlign: 'center',
+          }}>
+            <div style={{ fontWeight: 700, fontSize: '1.2rem', color: '#e11d48', marginBottom: '1rem' }}>
+              Invalid referral code. Please check and try again.
+            </div>
+            <button
+              style={{
+                background: '#38bdf8',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '0.5rem',
+                padding: '0.7rem 1.5rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                fontSize: '1rem',
+                marginTop: '0.5rem',
+              }}
+              onClick={() => setShowInvalidReferralModal(false)}
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      )}
       {/* Cylinder animation overlay */}
       {showFillAnim && (
         <div style={{
@@ -316,7 +453,8 @@ const Order: React.FC = () => {
             border: 'none', borderRadius: '1rem', padding: '0.7rem 1.5rem', fontWeight: 600, cursor: 'pointer', fontSize: '1rem', transition: 'background 0.2s',
           }}>Buy Gas Cylinder</button>
         </div>
-  <form onSubmit={handleSubmit} style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
+        <form onSubmit={handleSubmit} style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
+
           <div>
             <label style={{ fontWeight: 600, color: theme === 'dark' ? '#38bdf8' : '#334155' }}>Cylinder Size</label>
             <select value={cylinder} onChange={e => setCylinder(e.target.value)} required style={{ width: '100%', padding: '0.7rem', borderRadius: '0.8rem', border: '1px solid #e5e7eb', marginTop: '0.5rem', fontSize: '1rem' }}>
@@ -433,7 +571,6 @@ const Order: React.FC = () => {
               )}
             </>
           )}
-          {/* ...existing code... */}
           <div>
             <label style={{ fontWeight: 600, color: theme === 'dark' ? '#38bdf8' : '#334155' }}>Address</label>
             <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginTop: '0.5rem' }}>
@@ -506,6 +643,22 @@ const Order: React.FC = () => {
               style={{ width: '100%', minHeight: '60px', padding: '0.7rem', borderRadius: '0.8rem', border: '1px solid #e5e7eb', marginTop: '0.5rem', fontSize: '1rem', resize: 'vertical' }}
             />
           </div>
+                    {/* Referral code input: only show if user not already referred */}
+          {!alreadyReferred && (
+            <div>
+              <label style={{ fontWeight: 600, color: theme === 'dark' ? '#38bdf8' : '#334155' }}>
+                Referral Code
+              </label>
+              <input
+                type="text"
+                value={referralCode}
+                onChange={e => setReferralCode(e.target.value)}
+                placeholder="Enter referral code if you have one"
+                style={{ width: '100%', padding: '0.7rem', borderRadius: '0.8rem', border: '1px solid #e5e7eb', marginTop: '0.5rem', fontSize: '1rem' }}
+                maxLength={12}
+              />
+            </div>
+          )}
           <div>
             <label style={{ fontWeight: 600, color: theme === 'dark' ? '#38bdf8' : '#334155' }}>Payment Method</label>
             <select value={payment} onChange={e => setPayment(e.target.value)} required style={{ width: '100%', padding: '0.7rem', borderRadius: '0.8rem', border: '1px solid #e5e7eb', marginTop: '0.5rem', fontSize: '1rem' }}>

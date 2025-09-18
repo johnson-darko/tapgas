@@ -55,9 +55,14 @@ const LoginModal: React.FC<LoginModalProps> = ({ email: initialEmail = '', onSuc
       if (data.token) {
         localStorage.setItem('authToken', data.token); // Store the real JWT
       }
-      // Save email and role to profile
+      // Save email, role, and referral_code to profile
       const profile = getProfile();
-      saveProfile({ ...profile, email, role: data.user.role || 'customer' });
+      saveProfile({
+        ...profile,
+        email,
+        role: data.user.role || 'customer',
+        referral_code: data.user.referral_code || undefined
+      });
       onSuccess();
       window.location.reload(); // Reload to update profile/nav with new role
     } catch (err: any) {

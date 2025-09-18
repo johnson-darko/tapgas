@@ -28,6 +28,21 @@ const Profile: React.FC = () => {
       <h2 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '1.2rem' }}>
         User Profile
       </h2>
+      {profile.referral_code && (
+        <div style={{
+          background: '#fbbf24',
+          color: '#0f172a',
+          borderRadius: '0.7rem',
+          padding: '0.7rem 1.2rem',
+          fontWeight: 700,
+          fontSize: '1.1rem',
+          margin: '0 auto 1.2rem auto',
+          maxWidth: 320,
+          letterSpacing: '0.1em',
+        }}>
+          Your Referral Code: <span style={{fontFamily: 'monospace', fontWeight: 900}}>{profile.referral_code}</span>
+        </div>
+      )}
       <div style={{
         background: theme === 'dark' ? '#334155' : '#fff',
         borderRadius: '1rem',
