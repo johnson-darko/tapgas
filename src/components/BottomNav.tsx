@@ -4,7 +4,7 @@ import { useTheme } from '../useTheme';
 import { getProfile } from '../utils/profileStorage';
 
 const customerNav = [
-  { label: 'Home', path: '/', icon: '🏠' },
+  { label: 'Home', path: '/', icon: '🛖' },
   { label: 'Order', path: '/order', icon: '🛒' },
    // { label: 'Track', path: '/track', icon: '📦' },  // Hidden from bottom nav
   { label: 'History', path: '/history', icon: '🕑' },

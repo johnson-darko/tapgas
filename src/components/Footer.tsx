@@ -12,7 +12,7 @@ const Footer: React.FC = () => (
     marginTop: '2rem',
     boxSizing: 'border-box',
   }}>
-    TapGas &copy; {new Date().getFullYear()} &mdash; Order LPG, Track, Deliver. All rights reserved.
+    GASMAN &copy; {new Date().getFullYear()} &mdash; Order LPG, Track, Deliver. All rights reserved.
   </footer>
 );
 

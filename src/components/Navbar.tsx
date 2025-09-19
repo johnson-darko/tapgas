@@ -12,7 +12,7 @@ function PromoTooltipIcon({ theme }: PromoTooltipIconProps) {
           role="img"
           aria-label="gift"
           style={{
-            fontSize: '1.05rem',
+            fontSize: '1.155rem',
             cursor: 'pointer',
             marginRight: '0.25rem',
             color: theme === 'dark' ? '#fbbf24' : '#0ea5e9',
@@ -31,7 +31,7 @@ function PromoTooltipIcon({ theme }: PromoTooltipIconProps) {
           background: '#ef4444',
           color: '#fff',
           borderRadius: '50%',
-          fontSize: '0.425rem',
+          fontSize: '0.4675rem',
           fontWeight: 700,
           padding: '0.065rem 0.225rem',
           boxShadow: '0 0.5px 2px rgba(0,0,0,0.12)',
@@ -62,8 +62,8 @@ function PromoTooltipIcon({ theme }: PromoTooltipIconProps) {
           borderRadius: '0.35rem',
           boxShadow: '0 1px 6px rgba(0,0,0,0.10)',
           padding: '0.5rem',
-          minWidth: '110px',
-          fontSize: '0.5rem',
+          minWidth: '200px',
+          fontSize: '0.55rem',
           fontWeight: 500,
           zIndex: 10001,
           textAlign: 'left',
@@ -77,7 +77,7 @@ function PromoTooltipIcon({ theme }: PromoTooltipIconProps) {
               background: 'none',
               border: 'none',
               color: theme === 'dark' ? '#fbbf24' : '#0f172a',
-              fontSize: '0.6rem',
+              fontSize: '0.66rem',
               cursor: 'pointer',
               fontWeight: 700,
               zIndex: 10002,
@@ -86,7 +86,7 @@ function PromoTooltipIcon({ theme }: PromoTooltipIconProps) {
           >✕</button>
           <div style={{ fontWeight: 700, marginBottom: '0.25rem', paddingRight: '0.75rem' }}>Refer & Earn</div>
           <div>
-            <span style={{ fontSize: '0.5rem' }}>Share your referral code with friends!<br />
+            <span style={{ fontSize: '0.55rem' }}>Share your referral code with friends!<br />
             <span style={{ color: '#0ea5e9', fontWeight: 700 }}>Earn ₵1.50</span> in rewards for every friend who places their first LPG refill order using your code.<br />
             <span style={{ color: theme === 'dark' ? '#fbbf24' : '#ef4444', fontWeight: 700 }}>
               Your friend must enter your code when ordering.<br />
@@ -113,11 +113,13 @@ const Navbar: React.FC = () => {
     try {
       // Try to fetch a small resource to check connectivity
       const res = await fetch('/tapgas/manifest.json', { method: 'HEAD', cache: 'no-store' });
-      if (res.ok) {
-        window.location.reload();
-      } else {
-        throw new Error('Offline');
+      if (!res.ok) throw new Error('Offline');
+      // Clear all caches and reload
+      if ('caches' in window) {
+        const cacheNames = await caches.keys();
+        await Promise.all(cacheNames.map(name => caches.delete(name)));
       }
+      window.location.reload();
     } catch {
       setOfflineMsg('Please connect to the internet and refresh for latest updates.');
       setTimeout(() => setOfflineMsg(null), 4000);
@@ -153,7 +155,7 @@ const Navbar: React.FC = () => {
         onClick={() => navigate('/')} // Go to home page
         style={{
           fontWeight: 800,
-          fontSize: '0.85rem',
+          fontSize: '1.235rem',
           letterSpacing: '-0.5px',
           color: theme === 'dark' ? '#fff' : '#000',
           background: 'none',
@@ -171,7 +173,7 @@ const Navbar: React.FC = () => {
           background: 'none',
           border: 'none',
           color: theme === 'dark' ? '#38bdf8' : '#0ea5e9',
-          fontSize: '0.75rem',
+          fontSize: '1.525rem',
           cursor: 'pointer',
           fontWeight: 700,
         }} title="Refresh">
@@ -184,7 +186,7 @@ const Navbar: React.FC = () => {
           <span style={{
             fontWeight: 700,
             color: theme === 'dark' ? '#fbbf24' : '#0ea5e9',
-            fontSize: '0.55rem',
+            fontSize: '1.115rem',
             minWidth: 24,
             display: 'inline-block',
             textAlign: 'right',
@@ -198,7 +200,7 @@ const Navbar: React.FC = () => {
           background: 'none',
           border: 'none',
           color: theme === 'dark' ? '#fbbf24' : '#0f172a',
-          fontSize: '0.75rem',
+          fontSize: '1.825rem',
           cursor: 'pointer',
           fontWeight: 700,
         }} title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>
@@ -216,7 +218,7 @@ const Navbar: React.FC = () => {
           padding: '0.175rem 0.25rem',
           textAlign: 'center',
           fontWeight: 500,
-          fontSize: '0.425rem',
+          fontSize: '0.4675rem',
           borderRadius: '0.25rem',
           zIndex: 2100,
         }}>

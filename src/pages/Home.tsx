@@ -262,7 +262,7 @@ const Home: React.FC = () => {
           ? '0 4px 24px rgba(56,189,248,0.10)'
           : '0 4px 24px rgba(0,0,0,0.08)',
         padding: '2.5rem 1.5rem 2rem 1.5rem',
-    marginTop: '-1.5rem',
+    marginTop: '-0.5rem',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
@@ -273,10 +273,10 @@ const Home: React.FC = () => {
           src={IMAGE}
           alt="Home Visual"
           style={{
-            width: '315px',
-            height: '200px',
+            width: '400px',
+            height: '245px',
             borderRadius: '1.2rem',
-            marginBottom: '2rem',
+            marginBottom: '3rem',
             boxShadow: theme === 'dark' ? '0 2px 12px #18181b' : '0 2px 12px #e5e7eb',
             objectFit: 'cover',
             display: 'block',
@@ -473,7 +473,7 @@ const Home: React.FC = () => {
             )}
         </div>
         <div style={{ marginTop: '2rem', fontSize: '0.98rem', color: theme === 'dark' ? '#38bdf8' : '#64748b', fontWeight: 500 }}>
-          <span>Order LPG Gas•Fast•Secure•Reliable•Secure Pickup Codes•</span>
+          <span>Fast•Secure•Reliable•</span>
         </div>
       </div>
     </div>

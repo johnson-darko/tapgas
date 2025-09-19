@@ -1,4 +1,34 @@
 import React, { useState, useEffect } from 'react';
+// Global update banner component
+const UpdateBanner: React.FC<{ onRefresh: () => void }> = ({ onRefresh }) => (
+  <div style={{
+    position: 'fixed',
+    bottom: 0,
+    left: 0,
+    width: '100vw',
+    background: '#38bdf8',
+    color: '#fff',
+    textAlign: 'center',
+    padding: '0.7rem 0.5rem',
+    fontWeight: 700,
+    fontSize: '1rem',
+    zIndex: 3000,
+    boxShadow: '0 -2px 8px rgba(0,0,0,0.10)',
+  }}>
+    New version available. <button onClick={onRefresh} style={{
+      marginLeft: '1rem',
+      background: '#0f172a',
+      color: '#fff',
+      border: 'none',
+      borderRadius: '1.2rem',
+      padding: '0.4rem 1.2rem',
+      fontWeight: 700,
+      fontSize: '1rem',
+      cursor: 'pointer',
+      boxShadow: '0 1px 4px rgba(0,0,0,0.08)'
+    }}>Refresh</button>
+  </div>
+);
 import SplashScreen from './components/SplashScreen';
 import { HashRouter as Router, Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar';
@@ -23,9 +53,12 @@ import Testing from './pages/testing';
 
 import { useTheme } from './useTheme';
 
+
 const App: React.FC = () => {
   const { theme } = useTheme();
   const [showSplash, setShowSplash] = useState(true);
+  const [updateReady, setUpdateReady] = useState(false);
+  const [waitingSW, setWaitingSW] = useState<ServiceWorker | null>(null);
 
   useEffect(() => {
     // If no hash, redirect to hash route
@@ -35,6 +68,43 @@ const App: React.FC = () => {
     const timer = setTimeout(() => setShowSplash(false), 2000); // 2 seconds
     return () => clearTimeout(timer);
   }, []);
+
+  // Service worker update detection
+  useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistration().then(reg => {
+        if (!reg) return;
+        // Listen for updates
+        reg.addEventListener('updatefound', () => {
+          const newWorker = reg.installing;
+          if (newWorker) {
+            newWorker.addEventListener('statechange', () => {
+              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                setUpdateReady(true);
+                setWaitingSW(newWorker);
+              }
+            });
+          }
+        });
+        // If already waiting
+        if (reg.waiting) {
+          setUpdateReady(true);
+          setWaitingSW(reg.waiting);
+        }
+      });
+    }
+  }, []);
+
+  // Handler to refresh and activate new SW
+  const handleUpdate = () => {
+    if (waitingSW) {
+      waitingSW.postMessage({ type: 'SKIP_WAITING' });
+      // Listen for controllerchange to reload
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        window.location.reload();
+      }, { once: true });
+    }
+  };
 
   if (showSplash) {
     return <SplashScreen />;
@@ -83,6 +153,7 @@ const App: React.FC = () => {
               <Footer />
             </div>
             <BottomNav />
+            {updateReady && <UpdateBanner onRefresh={handleUpdate} />}
         </>
     </Router>
   );

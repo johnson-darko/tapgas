@@ -50,7 +50,21 @@ const History: React.FC = () => {
             fontWeight: 600,
             fontSize: '1.1rem',
           }}>
-            <span role="img" aria-label="history" style={{ fontSize: '2rem', display: 'block', marginBottom: '1rem' }}>📦</span>
+            <span style={{ display: 'block', marginBottom: '1rem' }}>
+              <svg width="60" height="90" viewBox="0 0 90 140" style={{ display: 'block', margin: '0 auto' }}>
+                {/* Cylinder body */}
+                <rect x="20" y="30" width="50" height="80" rx="22" fill={theme === 'dark' ? '#334155' : '#38bdf8'} stroke={theme === 'dark' ? '#fbbf24' : '#0f172a'} strokeWidth="3" />
+                {/* Cylinder top */}
+                <rect x="32" y="15" width="25" height="20" rx="10" fill={theme === 'dark' ? '#fbbf24' : '#0f172a'} />
+                {/* Eyes (smiling) */}
+                <ellipse cx="38" cy="60" rx="3" ry="5" fill="#fff" />
+                <ellipse cx="62" cy="60" rx="3" ry="5" fill="#fff" />
+                {/* Smile */}
+                <path d="M40 75 Q45 85 50 75" stroke="#0f172a" strokeWidth="2" fill="none" />
+                {/* 3D shadow */}
+                <ellipse cx="45" cy="115" rx="18" ry="6" fill="#64748b" opacity="0.18" />
+              </svg>
+            </span>
             You have no completed deliveries yet.<br />Your delivered orders will appear here for easy reference.
           </div>
         ) : (

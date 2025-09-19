@@ -5,6 +5,7 @@ import { LocalNotifications } from '@capacitor/local-notifications';
 import { useTheme } from '../useTheme';
 import { getOrders } from '../utils/orderStorage';
 import { getProfile, saveProfile } from '../utils/profileStorage';
+import LoginModal from '../components/LoginModal';
 
 const Profile: React.FC = () => {
   const { theme } = useTheme();
@@ -14,7 +15,8 @@ const Profile: React.FC = () => {
   const [editPhone, setEditPhone] = useState(profile.phone);
   const orders = getOrders();
   const lastOrder = orders.length > 0 ? orders[0] : null;
-  const isLoggedIn = !!localStorage.getItem('authToken');
+  const [showLogin, setShowLogin] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(() => !!localStorage.getItem('authToken'));
   let addressDisplay = 'No address yet';
   if (lastOrder) {
     addressDisplay = lastOrder.location && lastOrder.address.match(/^Lat: (-?\d+\.\d+), Lng: (-?\d+\.\d+)$/)
@@ -86,7 +88,19 @@ const Profile: React.FC = () => {
         margin: '0 auto',
         marginBottom: '2rem',
       }}>
-        {editing ? (
+        {!isLoggedIn ? (
+          <>
+            <div style={{ fontWeight: 600, fontSize: '1.1rem', marginBottom: '0.5rem' }}>Please log in to view your profile.</div>
+            <button type="button" onClick={() => setShowLogin(true)} style={{ margin: '1rem auto', background: '#22c55e', color: '#fff', border: 'none', borderRadius: '1rem', padding: '0.7rem 2rem', fontWeight: 600, fontSize: '1rem', cursor: 'pointer', display: 'block' }}>Login</button>
+            {showLogin && (
+              <LoginModal
+                onSuccess={() => { setIsLoggedIn(true); setShowLogin(false); }}
+                onClose={() => setShowLogin(false)}
+                email={''}
+              />
+            )}
+          </>
+        ) : editing ? (
           <form onSubmit={async e => {
             e.preventDefault();
             // Sync to backend first
