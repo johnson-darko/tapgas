@@ -4,7 +4,7 @@ import { useTheme } from '../useTheme';
 import { getProfile } from '../utils/profileStorage';
 
 const customerNav = [
-  { label: 'Home', path: '/', icon: '🛖' },
+  { label: 'Home', path: '/', icon: '🏠' },
   { label: 'Order', path: '/order', icon: '🛒' },
    // { label: 'Track', path: '/track', icon: '📦' },  // Hidden from bottom nav
   { label: 'History', path: '/history', icon: '🕑' },
@@ -34,44 +34,67 @@ const BottomNav: React.FC = () => {
   if (profile.role === 'admin') navItems = adminNav;
   else if (profile.role === 'driver') navItems = driverNav;
   return (
-    <nav style={{
-      position: 'fixed',
-      left: 0,
-      right: 0,
-      bottom: 0,
-      width: '100%',
-      background: theme === 'dark'
-        ? '#18181b'
-        : '#fff',
-      display: 'flex',
-      justifyContent: 'space-around',
-      alignItems: 'center',
-      height: '3.5rem',
-      zIndex: 1000,
-      boxShadow: '0 -2px 8px rgba(0,0,0,0.08)',
-      borderTop: theme === 'dark' ? '1px solid #334155' : '1px solid #e5e7eb',
-    }}>
-      {navItems.map(item => (
-        <Link
-          key={item.path}
-          to={item.path}
-          style={{
-            color: location.pathname === item.path
-              ? '#38bdf8'
-              : (theme === 'dark' ? '#fff' : '#000'),
-            textDecoration: 'none',
-            fontSize: '1.5rem',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            fontWeight: location.pathname === item.path ? 'bold' : 'normal',
-            transition: 'color 0.2s',
-          }}
-        >
-          <span>{item.icon}</span>
-          <span style={{ fontSize: '0.7rem' }}>{item.label}</span>
-        </Link>
-      ))}
+    <nav
+      style={{
+        position: 'fixed',
+        left: 0,
+        right: 0,
+        bottom: 0,
+        width: '100%',
+        background: 'transparent',
+        zIndex: 1000,
+        pointerEvents: 'none',
+      }}
+    >
+      <div
+        style={{
+          margin: '0 auto',
+          maxWidth: 315,
+          display: 'flex',
+          justifyContent: 'space-around',
+          alignItems: 'center',
+          height: '4.2rem',
+          borderRadius: '2.2rem',
+          background: theme === 'dark' ? 'rgba(24,24,27,0.98)' : 'rgba(255,255,255,0.98)',
+          boxShadow: '0 4px 32px 0 rgba(56,189,248,0.10), 0 1.5px 8px 0 rgba(0,0,0,0.10)',
+          border: theme === 'dark' ? '18.5px solid #334155' : '18.5px solid #e5e7eb',
+          position: 'relative',
+          bottom: '-0.8rem',
+          left: 0,
+          right: 0,
+          padding: '0 1.2rem',
+          pointerEvents: 'auto',
+          // Safe area for iOS PWA
+          paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 0.2rem)',
+        }}
+      >
+        {navItems.map(item => (
+          <Link
+            key={item.path}
+            to={item.path}
+            style={{
+              color: location.pathname === item.path
+                ? '#38bdf8'
+                : (theme === 'dark' ? '#fff' : '#000'),
+              textDecoration: 'none',
+              fontSize: '1.65rem',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              fontWeight: location.pathname === item.path ? 'bold' : 'normal',
+              transition: 'color 0.2s',
+              padding: '0.2rem 0.5rem 0.1rem 0.5rem',
+              borderRadius: '1.2rem',
+              minWidth: 54,
+            }}
+          >
+            <span>{item.icon}</span>
+            <span style={{ fontSize: '0.78rem', marginTop: '0.1rem' }}>{item.label}</span>
+          </Link>
+        ))}
+      </div>
+      {/* Safe area for iOS home indicator */}
+      <div style={{ height: 'calc(env(safe-area-inset-bottom, 0px) + 0.5rem)' }} />
     </nav>
   );
 };
