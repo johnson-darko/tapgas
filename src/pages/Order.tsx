@@ -1,4 +1,7 @@
 import React, { useState } from 'react';
+import { Capacitor } from '@capacitor/core';
+import { Geolocation } from '@capacitor/geolocation';
+import { scheduleOrderReminderNotification } from '../utils/localNotification';
 import LoginModal from '../components/LoginModal';
 import { saveOrder, getOrders } from '../utils/orderStorage';
 import type { Order as OrderType } from '../utils/orderStorage';
@@ -207,56 +210,8 @@ const Order: React.FC = () => {
           console.log('Saving order to local storage:', data.order);
           saveOrder(data.order);
 
-          // Schedule local notification in 2 minutes (if supported)
-          if ('Notification' in window) {
-            Notification.requestPermission().then(permission => {
-              if (permission === 'granted') {
-                // Try NotificationTrigger API (showTrigger) if available
-                if ('showTrigger' in Notification.prototype) {
-                  try {
-                    const timestamp = Date.now() + 2 * 60 * 1000;
-                    // @ts-ignore: showTrigger is experimental and not in TS types
-                    new Notification('TapGas Order Reminder', {
-                      body: 'Remember to follow up on your recent TapGas order!',
-                      icon: '/tapgas/vite.svg',
-                      tag: 'order-reminder',
-                      /* showTrigger: { timestamp }, // Uncomment if your TS/JS environment supports it */
-                    });
-                    console.log('[TapGas] Scheduled notification (showTrigger, if supported) for', new Date(timestamp));
-                  } catch (err) {
-                    console.warn('[TapGas] showTrigger scheduling failed, falling back to service worker.', err);
-                    if ('serviceWorker' in navigator) {
-                      navigator.serviceWorker.ready.then(reg => {
-                        reg.active?.postMessage({
-                          type: 'schedule-notification',
-                          title: 'TapGas Order Reminder',
-                          options: {
-                            body: 'Remember to follow up on your recent TapGas order!',
-                            icon: '/tapgas/vite.svg',
-                            tag: 'order-reminder',
-                          },
-                          delayMs: 2 * 60 * 1000,
-                        });
-                      });
-                    }
-                  }
-                } else if ('serviceWorker' in navigator) {
-                  navigator.serviceWorker.ready.then(reg => {
-                    reg.active?.postMessage({
-                      type: 'schedule-notification',
-                      title: 'TapGas Order Reminder',
-                      options: {
-                        body: 'Remember to follow up on your recent TapGas order!',
-                        icon: '/tapgas/vite.svg',
-                        tag: 'order-reminder',
-                      },
-                      delayMs: 2 * 60 * 1000,
-                    });
-                  });
-                }
-              }
-            });
-          }
+          // Schedule local notification in 2 minutes (Capacitor or browser)
+          scheduleOrderReminderNotification(2 * 60 * 1000);
         }
         setShowFillAnim(false);
         setSuccess(true);
@@ -494,36 +449,36 @@ const Order: React.FC = () => {
           <button type="button" onClick={() => setOrderType('gas')} style={{
             background: orderType === 'gas' ? (theme === 'dark' ? '#38bdf8' : '#0f172a') : (theme === 'dark' ? '#23272f' : '#e5e7eb'),
             color: orderType === 'gas' ? (theme === 'dark' ? '#0f172a' : '#fff') : (theme === 'dark' ? '#fbbf24' : '#334155'),
-            border: 'none', borderRadius: '1rem', padding: '0.7rem 1.5rem', fontWeight: 600, cursor: 'pointer', fontSize: '1rem', transition: 'background 0.2s',
+            border: 'none', borderRadius: '1rem', padding: '0.49rem 1.05rem', fontWeight: 600, cursor: 'pointer', fontSize: '0.7rem', transition: 'background 0.2s',
           }}>Order LPG Gas Refill</button>
           <button type="button" onClick={() => setOrderType('cylinder')} style={{
             background: orderType === 'cylinder' ? (theme === 'dark' ? '#38bdf8' : '#0f172a') : (theme === 'dark' ? '#23272f' : '#e5e7eb'),
             color: orderType === 'cylinder' ? (theme === 'dark' ? '#0f172a' : '#fff') : (theme === 'dark' ? '#fbbf24' : '#334155'),
-            border: 'none', borderRadius: '1rem', padding: '0.7rem 1.5rem', fontWeight: 600, cursor: 'pointer', fontSize: '1rem', transition: 'background 0.2s',
+            border: 'none', borderRadius: '1rem', padding: '0.49rem 1.05rem', fontWeight: 600, cursor: 'pointer', fontSize: '0.7rem', transition: 'background 0.2s',
           }}>Buy Gas Cylinder</button>
         </div>
         <form onSubmit={handleSubmit} style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
 
           <div>
-            <label style={{ fontWeight: 600, color: theme === 'dark' ? '#38bdf8' : '#334155' }}>Cylinder Size</label>
-            <select value={cylinder} onChange={e => setCylinder(e.target.value)} required style={{ width: '100%', padding: '0.7rem', borderRadius: '0.8rem', border: '1px solid #e5e7eb', marginTop: '0.5rem', fontSize: '1rem' }}>
+            <label style={{ fontWeight: 600, color: theme === 'dark' ? '#38bdf8' : '#334155', fontSize: '0.7rem' }}>Cylinder Size</label>
+            <select value={cylinder} onChange={e => setCylinder(e.target.value)} required style={{ width: '100%', padding: '0.49rem', borderRadius: '0.8rem', border: '1px solid #e5e7eb', marginTop: '0.35rem', fontSize: '0.7rem' }}>
               <option value="" disabled>Select size</option>
               {cylinderOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
             </select>
           </div>
           {orderType === 'cylinder' && (
             <div>
-              <label style={{ fontWeight: 600, color: theme === 'dark' ? '#38bdf8' : '#334155' }}>Cylinder Fill Option</label>
+              <label style={{ fontWeight: 600, color: theme === 'dark' ? '#38bdf8' : '#334155', fontSize: '0.7rem' }}>Cylinder Fill Option</label>
               <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem' }}>
                 <button type="button" onClick={() => setFilled('filled')} style={{
                   background: filled === 'filled' ? (theme === 'dark' ? '#fbbf24' : '#38bdf8') : (theme === 'dark' ? '#23272f' : '#e5e7eb'),
                   color: filled === 'filled' ? (theme === 'dark' ? '#0f172a' : '#fff') : (theme === 'dark' ? '#38bdf8' : '#334155'),
-                  border: 'none', borderRadius: '1rem', padding: '0.7rem 1.5rem', fontWeight: 600, cursor: 'pointer', fontSize: '1rem', transition: 'background 0.2s',
+                  border: 'none', borderRadius: '1rem', padding: '0.49rem 1.05rem', fontWeight: 600, cursor: 'pointer', fontSize: '0.7rem', transition: 'background 0.2s',
                 }}>Filled with Gas</button>
                 <button type="button" onClick={() => setFilled('empty')} style={{
                   background: filled === 'empty' ? (theme === 'dark' ? '#fbbf24' : '#38bdf8') : (theme === 'dark' ? '#23272f' : '#e5e7eb'),
                   color: filled === 'empty' ? (theme === 'dark' ? '#0f172a' : '#fff') : (theme === 'dark' ? '#38bdf8' : '#334155'),
-                  border: 'none', borderRadius: '1rem', padding: '0.7rem 1.5rem', fontWeight: 600, cursor: 'pointer', fontSize: '1rem', transition: 'background 0.2s',
+                  border: 'none', borderRadius: '1rem', padding: '0.49rem 1.05rem', fontWeight: 600, cursor: 'pointer', fontSize: '0.7rem', transition: 'background 0.2s',
                 }}>Empty Cylinder</button>
               </div>
             </div>
@@ -532,26 +487,26 @@ const Order: React.FC = () => {
           {orderType === 'gas' && (
             <>
               <div>
-                <label style={{ fontWeight: 600, color: theme === 'dark' ? '#38bdf8' : '#334155' }}>Choose Service Type</label>
+                <label style={{ fontWeight: 600, color: theme === 'dark' ? '#38bdf8' : '#334155', fontSize: '0.7rem' }}>Choose Service Type</label>
                 <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem' }}>
                   <button type="button" onClick={() => { setServiceType('kiosk'); setTimeSlot(null); setDeliveryWindow(null); }}
                     style={{
                       background: serviceType === 'kiosk' ? (theme === 'dark' ? '#38bdf8' : '#0f172a') : (theme === 'dark' ? '#23272f' : '#e5e7eb'),
                       color: serviceType === 'kiosk' ? (theme === 'dark' ? '#0f172a' : '#fff') : (theme === 'dark' ? '#fbbf24' : '#334155'),
-                      border: 'none', borderRadius: '1rem', padding: '0.7rem 1.5rem', fontWeight: 600, cursor: 'pointer', fontSize: '1rem', transition: 'background 0.2s',
+                      border: 'none', borderRadius: '1rem', padding: '0.49rem 1.05rem', fontWeight: 600, cursor: 'pointer', fontSize: '0.7rem', transition: 'background 0.2s',
                     }}>Drop off at Kiosk</button>
                   <button type="button" onClick={() => { setServiceType('pickup'); setTimeSlot(null); setDeliveryWindow(null); }}
                     style={{
                       background: serviceType === 'pickup' ? (theme === 'dark' ? '#38bdf8' : '#0f172a') : (theme === 'dark' ? '#23272f' : '#e5e7eb'),
                       color: serviceType === 'pickup' ? (theme === 'dark' ? '#0f172a' : '#fff') : (theme === 'dark' ? '#fbbf24' : '#334155'),
-                      border: 'none', borderRadius: '1rem', padding: '0.7rem 1.5rem', fontWeight: 600, cursor: 'pointer', fontSize: '1rem', transition: 'background 0.2s',
+                      border: 'none', borderRadius: '1rem', padding: '0.49rem 1.05rem', fontWeight: 600, cursor: 'pointer', fontSize: '0.7rem', transition: 'background 0.2s',
                     }}>Pickup from Home</button>
                 </div>
               </div>
               {/* Step 2: Time slot selection */}
               {serviceType && (
                 <div>
-                  <label style={{ fontWeight: 600, color: theme === 'dark' ? '#38bdf8' : '#334155' }}>Select {serviceType === 'kiosk' ? 'Drop-off' : 'Pickup'} Date</label>
+                  <label style={{ fontWeight: 600, color: theme === 'dark' ? '#38bdf8' : '#334155', fontSize: '0.7rem' }}>Select {serviceType === 'kiosk' ? 'Drop-off' : 'Pickup'} Date</label>
                   <input
                     type="date"
                     value={selectedDate}
@@ -563,26 +518,26 @@ const Order: React.FC = () => {
                     }}
                     style={{
                       width: '100%',
-                      padding: '0.7rem',
+                      padding: '0.49rem',
                       borderRadius: '0.8rem',
                       border: '1px solid #e5e7eb',
-                      marginTop: '0.5rem',
-                      fontSize: '1rem',
+                      marginTop: '0.35rem',
+                      fontSize: '0.7rem',
                     }}
                   />
-                  <label style={{ fontWeight: 600, color: theme === 'dark' ? '#38bdf8' : '#334155', marginTop: '1rem', display: 'block' }}>Select {serviceType === 'kiosk' ? 'Drop-off' : 'Pickup'} Time</label>
+                  <label style={{ fontWeight: 600, color: theme === 'dark' ? '#38bdf8' : '#334155', marginTop: '1rem', display: 'block', fontSize: '0.7rem' }}>Select {serviceType === 'kiosk' ? 'Drop-off' : 'Pickup'} Time</label>
                   <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem' }}>
                     <button type="button" onClick={() => handleTimeSlotSelect('morning')}
                       style={{
                         background: timeSlot === 'morning' ? (theme === 'dark' ? '#fbbf24' : '#38bdf8') : (theme === 'dark' ? '#23272f' : '#e5e7eb'),
                         color: timeSlot === 'morning' ? (theme === 'dark' ? '#0f172a' : '#fff') : (theme === 'dark' ? '#38bdf8' : '#334155'),
-                        border: 'none', borderRadius: '1rem', padding: '0.7rem 1.5rem', fontWeight: 600, cursor: 'pointer', fontSize: '1rem', transition: 'background 0.2s',
+                        border: 'none', borderRadius: '1rem', padding: '0.49rem 1.05rem', fontWeight: 600, cursor: 'pointer', fontSize: '0.7rem', transition: 'background 0.2s',
                       }}>Morning (4:30–9:00 AM)</button>
                     <button type="button" onClick={() => handleTimeSlotSelect('evening')}
                       style={{
                         background: timeSlot === 'evening' ? (theme === 'dark' ? '#fbbf24' : '#38bdf8') : (theme === 'dark' ? '#23272f' : '#e5e7eb'),
                         color: timeSlot === 'evening' ? (theme === 'dark' ? '#0f172a' : '#fff') : (theme === 'dark' ? '#38bdf8' : '#334155'),
-                        border: 'none', borderRadius: '1rem', padding: '0.7rem 1.5rem', fontWeight: 600, cursor: 'pointer', fontSize: '1rem', transition: 'background 0.2s',
+                        border: 'none', borderRadius: '1rem', padding: '0.49rem 1.05rem', fontWeight: 600, cursor: 'pointer', fontSize: '0.7rem', transition: 'background 0.2s',
                       }}>Evening (4:30–8:00 PM)</button>
                   </div>
                 </div>
@@ -593,25 +548,25 @@ const Order: React.FC = () => {
                   <label style={{ fontWeight: 600, color: theme === 'dark' ? '#38bdf8' : '#334155' }}>Choose Delivery Window</label>
                   <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
                     {timeSlot === 'morning' ? (
-                      <button type="button" onClick={() => setDeliveryWindow('sameDayEvening')}
-                        style={{
-                          background: deliveryWindow === 'sameDayEvening' ? (theme === 'dark' ? '#38bdf8' : '#0f172a') : (theme === 'dark' ? '#23272f' : '#e5e7eb'),
-                          color: deliveryWindow === 'sameDayEvening' ? (theme === 'dark' ? '#0f172a' : '#fff') : (theme === 'dark' ? '#fbbf24' : '#334155'),
-                          border: 'none', borderRadius: '1rem', padding: '0.7rem 1.5rem', fontWeight: 600, cursor: 'pointer', fontSize: '1rem', transition: 'background 0.2s',
-                        }}>Same Day Evening (4:30–7:00 PM)</button>
+                        <button type="button" onClick={() => setDeliveryWindow('sameDayEvening')}
+                          style={{
+                            background: deliveryWindow === 'sameDayEvening' ? (theme === 'dark' ? '#38bdf8' : '#0f172a') : (theme === 'dark' ? '#23272f' : '#e5e7eb'),
+                            color: deliveryWindow === 'sameDayEvening' ? (theme === 'dark' ? '#0f172a' : '#fff') : (theme === 'dark' ? '#fbbf24' : '#334155'),
+                            border: 'none', borderRadius: '1rem', padding: '0.49rem 1.05rem', fontWeight: 600, cursor: 'pointer', fontSize: '0.7rem', transition: 'background 0.2s',
+                          }}>Same Day Evening (4:30–7:00 PM)</button>
                     ) : (
                       <>
                         <button type="button" onClick={() => setDeliveryWindow('nextMorning')}
                           style={{
                             background: deliveryWindow === 'nextMorning' ? (theme === 'dark' ? '#38bdf8' : '#0f172a') : (theme === 'dark' ? '#23272f' : '#e5e7eb'),
                             color: deliveryWindow === 'nextMorning' ? (theme === 'dark' ? '#0f172a' : '#fff') : (theme === 'dark' ? '#fbbf24' : '#334155'),
-                            border: 'none', borderRadius: '1rem', padding: '0.7rem 1.5rem', fontWeight: 600, cursor: 'pointer', fontSize: '1rem', transition: 'background 0.2s',
+                            border: 'none', borderRadius: '1rem', padding: '0.49rem 1.05rem', fontWeight: 600, cursor: 'pointer', fontSize: '0.7rem', transition: 'background 0.2s',
                           }}>Next Morning (5:00–9:00 AM)</button>
                         <button type="button" onClick={() => setDeliveryWindow('nextEvening')}
                           style={{
                             background: deliveryWindow === 'nextEvening' ? (theme === 'dark' ? '#38bdf8' : '#0f172a') : (theme === 'dark' ? '#23272f' : '#e5e7eb'),
                             color: deliveryWindow === 'nextEvening' ? (theme === 'dark' ? '#0f172a' : '#fff') : (theme === 'dark' ? '#fbbf24' : '#334155'),
-                            border: 'none', borderRadius: '1rem', padding: '0.7rem 1.5rem', fontWeight: 600, cursor: 'pointer', fontSize: '1rem', transition: 'background 0.2s',
+                            border: 'none', borderRadius: '1rem', padding: '0.49rem 1.05rem', fontWeight: 600, cursor: 'pointer', fontSize: '0.7rem', transition: 'background 0.2s',
                           }}>Next Evening (4:30–8:00 PM)</button>
                       </>
                     )}
@@ -621,7 +576,7 @@ const Order: React.FC = () => {
             </>
           )}
           <div>
-            <label style={{ fontWeight: 600, color: theme === 'dark' ? '#38bdf8' : '#334155' }}>Address</label>
+            <label style={{ fontWeight: 600, color: theme === 'dark' ? '#38bdf8' : '#334155', fontSize: '0.7rem' }}>Address</label>
             <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginTop: '0.5rem' }}>
               <input
                 type="text"
@@ -629,13 +584,24 @@ const Order: React.FC = () => {
                 readOnly
                 required
                 placeholder="Click 'My Location'"
-                style={{ flex: 1, padding: '0.7rem', borderRadius: '0.8rem', border: '1px solid #e5e7eb', fontSize: '1rem', background: '#f1f5f9', color: '#64748b' }}
+                style={{ flex: 1, padding: '0.49rem', borderRadius: '0.8rem', border: '1px solid #e5e7eb', fontSize: '0.7rem', background: '#f1f5f9', color: '#64748b' }}
               />
               <button
                 type="button"
-                onClick={() => {
+                onClick={async () => {
                   setLocating(true);
-                  if (navigator.geolocation) {
+                  if (Capacitor.isNativePlatform()) {
+                    try {
+                      await Geolocation.requestPermissions();
+                      const pos = await Geolocation.getCurrentPosition();
+                      const { latitude, longitude } = pos.coords;
+                      setAddress(`Lat: ${latitude.toFixed(5)}, Lng: ${longitude.toFixed(5)}`);
+                      setLocating(false);
+                    } catch (err) {
+                      alert('Unable to get location. Please type your address.');
+                      setLocating(false);
+                    }
+                  } else if (navigator.geolocation) {
                     navigator.geolocation.getCurrentPosition(
                       pos => {
                         const { latitude, longitude } = pos.coords;
@@ -655,7 +621,7 @@ const Order: React.FC = () => {
                 style={{
                   background: theme === 'dark' ? '#38bdf8' : '#0f172a',
                   color: theme === 'dark' ? '#0f172a' : '#fff',
-                  border: 'none', borderRadius: '0.8rem', padding: '0.7rem 1rem', fontWeight: 600, cursor: 'pointer', fontSize: '0.95rem', transition: 'background 0.2s', minWidth: '40px'
+                  border: 'none', borderRadius: '0.8rem', padding: '0.49rem 0.7rem', fontWeight: 600, cursor: 'pointer', fontSize: '0.665rem', transition: 'background 0.2s', minWidth: '28px'
                 }}
                 disabled={locating}
               >{locating ? 'Locating...' : 'My Location'}</button>
@@ -684,18 +650,18 @@ const Order: React.FC = () => {
           </div>
           {/* ...existing code... */}
           <div>
-            <label style={{ fontWeight: 600, color: theme === 'dark' ? '#38bdf8' : '#334155' }}>Directions / Notes</label>
+            <label style={{ fontWeight: 600, color: theme === 'dark' ? '#38bdf8' : '#334155', fontSize: '0.7rem' }}>Directions / Notes</label>
             <textarea
               value={notes}
               onChange={e => setNotes(e.target.value)}
               placeholder="Add directions, landmarks, or extra info for delivery"
-              style={{ width: '100%', minHeight: '60px', padding: '0.7rem', borderRadius: '0.8rem', border: '1px solid #e5e7eb', marginTop: '0.5rem', fontSize: '1rem', resize: 'vertical' }}
+              style={{ width: '100%', minHeight: '42px', padding: '0.49rem', borderRadius: '0.8rem', border: '1px solid #e5e7eb', marginTop: '0.35rem', fontSize: '0.7rem', resize: 'vertical' }}
             />
           </div>
                     {/* Referral code input: only show if user not already referred */}
           {!alreadyReferred && (
             <div>
-              <label style={{ fontWeight: 600, color: theme === 'dark' ? '#38bdf8' : '#334155' }}>
+              <label style={{ fontWeight: 600, color: theme === 'dark' ? '#38bdf8' : '#334155', fontSize: '0.7rem' }}>
                 Referral Code
               </label>
               <input
@@ -703,14 +669,14 @@ const Order: React.FC = () => {
                 value={referralCode}
                 onChange={e => setReferralCode(e.target.value)}
                 placeholder="Enter referral code if you have one"
-                style={{ width: '100%', padding: '0.7rem', borderRadius: '0.8rem', border: '1px solid #e5e7eb', marginTop: '0.5rem', fontSize: '1rem' }}
+                style={{ width: '100%', padding: '0.49rem', borderRadius: '0.8rem', border: '1px solid #e5e7eb', marginTop: '0.35rem', fontSize: '0.7rem' }}
                 maxLength={12}
               />
             </div>
           )}
           <div>
-            <label style={{ fontWeight: 600, color: theme === 'dark' ? '#38bdf8' : '#334155' }}>Payment Method</label>
-            <select value={payment} onChange={e => setPayment(e.target.value)} required style={{ width: '100%', padding: '0.7rem', borderRadius: '0.8rem', border: '1px solid #e5e7eb', marginTop: '0.5rem', fontSize: '1rem' }}>
+            <label style={{ fontWeight: 600, color: theme === 'dark' ? '#38bdf8' : '#334155', fontSize: '0.7rem' }}>Payment Method</label>
+            <select value={payment} onChange={e => setPayment(e.target.value)} required style={{ width: '100%', padding: '0.49rem', borderRadius: '0.8rem', border: '1px solid #e5e7eb', marginTop: '0.35rem', fontSize: '0.7rem' }}>
               {paymentOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
             </select>
           </div>

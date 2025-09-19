@@ -19,7 +19,7 @@ import PickupConfirm from './pages/PickupConfirm';
 import DriverTrackOrder from './pages/DriverTrackOrder';
 import DriverHistory from './pages/DriverHistory';
 import DriverRoute from './pages/DriverRoute';
-
+import Testing from './pages/testing';
 
 import { useTheme } from './useTheme';
 
@@ -77,6 +77,7 @@ const App: React.FC = () => {
                   <Route path="/login" element={<Login />} />
                   <Route path="/admin-assign-orders" element={<AdminAssignOrders />} />
                   <Route path="/admin-drivers" element={<AdminDrivers />} />
+                  <Route path="/testing" element={<Testing />} />
                 </Routes>
               </div>
               <Footer />

@@ -1,5 +1,7 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { Capacitor } from '@capacitor/core';
+import { LocalNotifications } from '@capacitor/local-notifications';
 import { useTheme } from '../useTheme';
 import { getOrders } from '../utils/orderStorage';
 import { getProfile, saveProfile } from '../utils/profileStorage';
@@ -19,27 +21,14 @@ const Profile: React.FC = () => {
       ? `Address Coordinates: ${lastOrder.location.lat},${lastOrder.location.lng}`
       : `Address: ${lastOrder.address}`;
   }
-  // Notification permission status
-  const [notifPerm, setNotifPerm] = React.useState(
-    typeof window !== 'undefined' && 'Notification' in window ? Notification.permission : 'default'
-  );
-  let notificationStatus = '';
-  if (notifPerm === 'granted') {
-    notificationStatus = 'Notifications are enabled.';
-  } else if (notifPerm === 'denied') {
-    notificationStatus = 'Notifications are blocked. Please enable them in your browser settings.';
-  } else {
-    notificationStatus = 'Notifications are not enabled yet.';
-  }
 
-  // Handler for requesting notification permission
-  const handleRequestNotif = () => {
-    if ('Notification' in window) {
-      Notification.requestPermission().then(perm => {
-        setNotifPerm(perm);
-      });
+  // Request notification permission on mount if native
+  useEffect(() => {
+    if (Capacitor.isNativePlatform()) {
+      LocalNotifications.requestPermissions();
     }
-  };
+  }, []);
+  // Notification permission status logic removed (no longer needed)
 
   return (
     <div style={{
@@ -50,42 +39,29 @@ const Profile: React.FC = () => {
       <h2 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '1.2rem' }}>
         User Profile
       </h2>
-      {/* Notification status */}
-      <div style={{
-        background: '#e0e7ef',
-        color: '#0f172a',
-        borderRadius: '0.7rem',
-        padding: '0.5rem 1.2rem',
-        fontWeight: 500,
-        fontSize: '1rem',
-        margin: '0 auto 1.2rem auto',
-        maxWidth: 320,
-        letterSpacing: '0.05em',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: '0.5rem',
-      }}>
-        <span role="img" aria-label="bell">🔔</span> {notificationStatus}
-        {notifPerm !== 'granted' && notifPerm !== 'denied' && (
-          <button
-            onClick={handleRequestNotif}
-            style={{
-              background: '#38bdf8',
-              color: '#fff',
-              border: 'none',
-              borderRadius: '1.2rem',
-              padding: '0.5rem 1.2rem',
-              fontWeight: 600,
-              fontSize: '1rem',
-              cursor: 'pointer',
-              marginTop: '0.2rem',
-            }}
-          >
-            Enable Notifications
-          </button>
-        )}
-      </div>
+      {/* Notification device settings help note for native only */}
+      {Capacitor.isNativePlatform() && (
+        <div style={{
+          background: '#e0e7ef',
+          color: '#0f172a',
+          borderRadius: '0.7rem',
+          padding: '0.5rem 1.2rem',
+          fontWeight: 500,
+          fontSize: '1rem',
+          margin: '0 auto 1.2rem auto',
+          maxWidth: 320,
+          letterSpacing: '0.05em',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '0.5rem',
+        }}>
+          <span role="img" aria-label="bell">🔔</span>
+          <div style={{ marginTop: '0.5rem', fontSize: '0.95rem', color: '#64748b', textAlign: 'center' }}>
+            To get notifications, please visit your device settings, go to Apps, select GASMAN, and allow notifications.
+          </div>
+        </div>
+      )}
       {profile.referral_code && (
         <div style={{
           background: '#fbbf24',

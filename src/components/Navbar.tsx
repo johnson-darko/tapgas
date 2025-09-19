@@ -12,9 +12,9 @@ function PromoTooltipIcon({ theme }: PromoTooltipIconProps) {
           role="img"
           aria-label="gift"
           style={{
-            fontSize: '2.1rem',
+            fontSize: '1.05rem',
             cursor: 'pointer',
-            marginRight: '0.5rem',
+            marginRight: '0.25rem',
             color: theme === 'dark' ? '#fbbf24' : '#0ea5e9',
             display: 'inline-block',
             animation: showTooltip ? 'bounceGift 0.7s' : 'bounceGiftIdle 2s infinite',
@@ -26,44 +26,44 @@ function PromoTooltipIcon({ theme }: PromoTooltipIconProps) {
         {/* Badge */}
         <span style={{
           position: 'absolute',
-          top: '-0.3rem',
-          right: '-0.2rem',
+          top: '-0.15rem',
+          right: '-0.1rem',
           background: '#ef4444',
           color: '#fff',
           borderRadius: '50%',
-          fontSize: '0.85rem',
+          fontSize: '0.425rem',
           fontWeight: 700,
-          padding: '0.13rem 0.45rem',
-          boxShadow: '0 1px 4px rgba(0,0,0,0.12)',
+          padding: '0.065rem 0.225rem',
+          boxShadow: '0 0.5px 2px rgba(0,0,0,0.12)',
           zIndex: 2,
-          border: theme === 'dark' ? '2px solid #23272f' : '2px solid #fff',
+          border: theme === 'dark' ? '1px solid #23272f' : '1px solid #fff',
         }}>1</span>
       </span>
       <style>{`
         @keyframes bounceGift {
           0% { transform: scale(1) translateY(0); }
-          30% { transform: scale(1.35) translateY(-10px); }
-          50% { transform: scale(1.05) translateY(3px); }
-          70% { transform: scale(1.15) translateY(-3px); }
+          30% { transform: scale(1.35) translateY(-5px); }
+          50% { transform: scale(1.05) translateY(1.5px); }
+          70% { transform: scale(1.15) translateY(-1.5px); }
           100% { transform: scale(1) translateY(0); }
         }
         @keyframes bounceGiftIdle {
           0%, 100% { transform: scale(1) translateY(0); }
-          50% { transform: scale(1.12) translateY(-4px); }
+          50% { transform: scale(1.12) translateY(-2px); }
         }
       `}</style>
       {showTooltip && (
         <div style={{
           position: 'absolute',
-          top: '2.2rem',
+          top: '1.1rem',
           right: 0,
           background: theme === 'dark' ? '#23272f' : '#fff',
           color: theme === 'dark' ? '#fbbf24' : '#0f172a',
-          borderRadius: '0.7rem',
-          boxShadow: '0 2px 12px rgba(0,0,0,0.10)',
-          padding: '1rem',
-          minWidth: '220px',
-          fontSize: '1rem',
+          borderRadius: '0.35rem',
+          boxShadow: '0 1px 6px rgba(0,0,0,0.10)',
+          padding: '0.5rem',
+          minWidth: '110px',
+          fontSize: '0.5rem',
           fontWeight: 500,
           zIndex: 10001,
           textAlign: 'left',
@@ -72,27 +72,27 @@ function PromoTooltipIcon({ theme }: PromoTooltipIconProps) {
             onClick={() => setShowTooltip(false)}
             style={{
               position: 'absolute',
-              top: '0.5rem',
-              right: '0.7rem',
+              top: '0.25rem',
+              right: '0.35rem',
               background: 'none',
               border: 'none',
               color: theme === 'dark' ? '#fbbf24' : '#0f172a',
-              fontSize: '1.2rem',
+              fontSize: '0.6rem',
               cursor: 'pointer',
               fontWeight: 700,
               zIndex: 10002,
             }}
             aria-label="Close promo"
           >✕</button>
-          <div style={{ fontWeight: 700, marginBottom: '0.5rem', paddingRight: '1.5rem' }}>Refer &amp; Earn</div>
+          <div style={{ fontWeight: 700, marginBottom: '0.25rem', paddingRight: '0.75rem' }}>Refer & Earn</div>
           <div>
-            Share your referral code with friends!<br />
+            <span style={{ fontSize: '0.5rem' }}>Share your referral code with friends!<br />
             <span style={{ color: '#0ea5e9', fontWeight: 700 }}>Earn ₵1.50</span> in rewards for every friend who places their first LPG refill order using your code.<br />
             <span style={{ color: theme === 'dark' ? '#fbbf24' : '#ef4444', fontWeight: 700 }}>
               Your friend must enter your code when ordering.<br />
               Rewards are credited after their first delivery.<br />
               <span style={{ color: '#0ea5e9' }}>Your referral rewards are automatically applied as a discount to your own future orders.</span>
-            </span>
+            </span></span>
           </div>
         </div>
       )}
@@ -135,8 +135,8 @@ const Navbar: React.FC = () => {
         ? '#18181b'
         : '#fff',
       color: theme === 'dark' ? '#fff' : '#000',
-      boxShadow: theme === 'dark' ? '0 2px 8px rgba(56,189,248,0.10)' : '0 2px 8px rgba(0,0,0,0.08)',
-      padding: '0.7rem 1.2rem',
+      boxShadow: theme === 'dark' ? '0 1px 4px rgba(56,189,248,0.10)' : '0 1px 4px rgba(0,0,0,0.08)',
+      padding: '0.35rem 0.6rem',
       display: 'flex',
       flexDirection: 'row',
       alignItems: 'center',
@@ -146,15 +146,15 @@ const Navbar: React.FC = () => {
       left: 0,
       right: 0,
       zIndex: 2000,
-      minHeight: '3.5rem',
+      minHeight: '1.75rem',
       transition: 'background 0.3s, color 0.3s',
     }}>
       <button
         onClick={() => navigate('/')} // Go to home page
         style={{
           fontWeight: 800,
-          fontSize: '1.7rem',
-          letterSpacing: '-1px',
+          fontSize: '0.85rem',
+          letterSpacing: '-0.5px',
           color: theme === 'dark' ? '#fff' : '#000',
           background: 'none',
           border: 'none',
@@ -167,11 +167,11 @@ const Navbar: React.FC = () => {
       </button>
       <div style={{ display: 'flex', alignItems: 'center', position: 'relative' }}>
         <button onClick={handleRefresh} style={{
-          marginRight: '0.5rem',
+          marginRight: '0.25rem',
           background: 'none',
           border: 'none',
           color: theme === 'dark' ? '#38bdf8' : '#0ea5e9',
-          fontSize: '1.5rem',
+          fontSize: '0.75rem',
           cursor: 'pointer',
           fontWeight: 700,
         }} title="Refresh">
@@ -180,25 +180,25 @@ const Navbar: React.FC = () => {
         {/* Promo tooltip icon */}
         <span style={{ display: 'flex', alignItems: 'center', position: 'relative' }}>
           <PromoTooltipIcon theme={theme} />
-          <span style={{ width: 10, display: 'inline-block' }} />
+          <span style={{ width: 5, display: 'inline-block' }} />
           <span style={{
             fontWeight: 700,
             color: theme === 'dark' ? '#fbbf24' : '#0ea5e9',
-            fontSize: '1.1rem',
-            minWidth: 48,
+            fontSize: '0.55rem',
+            minWidth: 24,
             display: 'inline-block',
             textAlign: 'right',
-            letterSpacing: '0.01em',
+            letterSpacing: '0.005em',
           }}>
             ₵ {referralReward.toFixed(2)}
           </span>
         </span>
         <button onClick={toggleTheme} style={{
-          marginLeft: '1rem',
+          marginLeft: '0.5rem',
           background: 'none',
           border: 'none',
           color: theme === 'dark' ? '#fbbf24' : '#0f172a',
-          fontSize: '1.5rem',
+          fontSize: '0.75rem',
           cursor: 'pointer',
           fontWeight: 700,
         }} title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>
@@ -213,11 +213,11 @@ const Navbar: React.FC = () => {
           width: '100%',
           background: '#f87171',
           color: '#fff',
-          padding: '0.35rem 0.5rem',
+          padding: '0.175rem 0.25rem',
           textAlign: 'center',
           fontWeight: 500,
-          fontSize: '0.85rem',
-          borderRadius: '0.5rem',
+          fontSize: '0.425rem',
+          borderRadius: '0.25rem',
           zIndex: 2100,
         }}>
           {offlineMsg}

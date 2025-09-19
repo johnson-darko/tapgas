@@ -1,5 +1,6 @@
 import type { Order } from '../utils/orderStorage';
 import React, { useState, useEffect } from 'react';
+import IMAGE from '../assets/IMAGE.png';
 
 // Animated SVG illustration component
 interface AnimatedOrderStoryProps {
@@ -261,20 +262,30 @@ const Home: React.FC = () => {
           ? '0 4px 24px rgba(56,189,248,0.10)'
           : '0 4px 24px rgba(0,0,0,0.08)',
         padding: '2.5rem 1.5rem 2rem 1.5rem',
-    marginTop: '1rem',
+    marginTop: '-1.5rem',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
       }}>
 
         <AnimatedOrderStory theme={theme} />
-        <p style={{ fontSize: '1.15rem', marginBottom: '2rem', color: theme === 'dark' ? '#f1f5f9' : '#334155', fontWeight: 500 }}>
-          Order LPG, Track, Deliver.<br />Fast, Secure, Reliable.
-        </p>
-  <div style={{ display: 'flex', gap: '1rem', marginBottom: '2.2rem', width: '100%', justifyContent: 'center' }}>
+        <img
+          src={IMAGE}
+          alt="Home Visual"
+          style={{
+            width: '315px',
+            height: '200px',
+            borderRadius: '1.2rem',
+            marginBottom: '2rem',
+            boxShadow: theme === 'dark' ? '0 2px 12px #18181b' : '0 2px 12px #e5e7eb',
+            objectFit: 'cover',
+            display: 'block',
+          }}
+        />
+  <div style={{ display: 'flex', gap: '2rem', marginBottom: '0.2rem', width: '100%', justifyContent: 'center' }}>
           <button
             style={{
-              background: theme === 'dark' ? '#38bdf8' : '#0f172a',
+                           background: theme === 'dark' ? '#fbbf24' : '#38bdf8',
               color: theme === 'dark' ? '#0f172a' : '#fff',
               border: 'none',
               borderRadius: '2rem',
@@ -288,8 +299,8 @@ const Home: React.FC = () => {
             onMouseOver={e => e.currentTarget.style.background = theme === 'dark' ? '#0f172a' : '#38bdf8'}
             onMouseOut={e => e.currentTarget.style.background = theme === 'dark' ? '#38bdf8' : '#0f172a'}
             onClick={() => navigate('/order')}
-          >Order</button>
-          <button
+          >Fill My Cylinder</button>
+          {/* <button
             style={{
               background: theme === 'dark' ? '#fbbf24' : '#38bdf8',
               color: theme === 'dark' ? '#0f172a' : '#fff',
@@ -305,9 +316,9 @@ const Home: React.FC = () => {
             onMouseOver={e => e.currentTarget.style.background = theme === 'dark' ? '#334155' : '#0f172a'}
             onMouseOut={e => e.currentTarget.style.background = theme === 'dark' ? '#fbbf24' : '#38bdf8'}
             onClick={() => navigate('/track')}
-          >Track Order</button>
+          >Track Order</button> */}
         </div>
-        <button
+       {/* <button
           onClick={() => { localStorage.removeItem('tapgas_orders'); window.location.reload(); }}
           style={{
             marginBottom: '1.5rem',
@@ -325,7 +336,7 @@ const Home: React.FC = () => {
             marginLeft: 'auto',
             marginRight: 'auto',
           }}
-        >Clear Local Orders</button>
+        >Clear Local Orders</button> */}
         {/* Check Update Modal */}
         {showCheckModal && (
           <div style={{
@@ -372,7 +383,7 @@ const Home: React.FC = () => {
             </div>
           </div>
         )}
-        <div style={{ margin: '2rem 0', width: '100%' }}>
+        <div style={{ margin: '1rem 0', width: '100%' }}>
                   <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '1rem', color: theme === 'dark' ? '#fbbf24' : '#0f172a', textAlign: 'center' }}>
                     Lastest Order Overview
                   </h2>
@@ -410,7 +421,7 @@ const Home: React.FC = () => {
             ) : (
               <div style={{
                 maxWidth: '350px',
-                margin: '2rem auto',
+                margin: '0rem auto',
                 background: theme === 'dark' ? '#23272f' : '#f8fafc',
                 borderRadius: '1.2rem',
                 boxShadow: theme === 'dark' ? '0 2px 12px rgba(56,189,248,0.10)' : '0 2px 12px rgba(0,0,0,0.08)',
@@ -420,13 +431,49 @@ const Home: React.FC = () => {
                 fontWeight: 600,
                 fontSize: '1.1rem',
               }}>
-                <span role="img" aria-label="order" style={{ fontSize: '2rem', display: 'block', marginBottom: '1rem' }}>🛢️</span>
-                You have no active orders.<br />Start a new order to see it here!
+                <svg width="90" height="140" viewBox="0 0 90 140" style={{ display: 'block', margin: '0 auto 1.2rem auto' }}>
+                  {/* Cylinder body */}
+                  <rect x="20" y="30" width="50" height="80" rx="22" fill={theme === 'dark' ? '#334155' : '#38bdf8'} stroke={theme === 'dark' ? '#fbbf24' : '#0f172a'} strokeWidth="3" />
+                  {/* Cylinder top */}
+                  <rect x="32" y="15" width="25" height="20" rx="10" fill={theme === 'dark' ? '#fbbf24' : '#0f172a'} />
+                  {/* Eyes (crying) */}
+                  <ellipse cx="38" cy="60" rx="3" ry="5" fill="#fff" />
+                  <ellipse cx="62" cy="60" rx="3" ry="5" fill="#fff" />
+                  <ellipse cx="38" cy="65" rx="1.2" ry="2.2" fill="#38bdf8" />
+                  <ellipse cx="62" cy="65" rx="1.2" ry="2.2" fill="#38bdf8" />
+                  {/* Tears */}
+                  <ellipse cx="38" cy="72" rx="1.1" ry="2.5" fill="#60a5fa" opacity="0.7" />
+                  <ellipse cx="62" cy="72" rx="1.1" ry="2.5" fill="#60a5fa" opacity="0.7" />
+                  {/* Sad mouth */}
+                  <path d="M42 80 Q45 85 48 80" stroke="#0f172a" strokeWidth="2" fill="none" />
+                  <path d="M52 80 Q55 85 58 80" stroke="#0f172a" strokeWidth="2" fill="none" />
+                  {/* 3D shadow */}
+                  <ellipse cx="45" cy="115" rx="18" ry="6" fill="#64748b" opacity="0.18" />
+                </svg>
+                <div style={{ fontWeight: 700, fontSize: '1.15rem', marginBottom: '0.5rem' }}>No Gas Yet!</div>
+                <div style={{ fontWeight: 500, fontSize: '1rem', marginBottom: '1rem', color: theme === 'dark' ? '#fbbf24' : '#0f172a' }}>
+                  Your gas cylinder is empty and crying to be filled up.<br />Start a new order to bring it back to life!
+                </div>
+                <button
+                  style={{
+                    background: theme === 'dark' ? '#fbbf24' : '#38bdf8',
+                    color: theme === 'dark' ? '#0f172a' : '#fff',
+                    border: 'none',
+                    borderRadius: '2rem',
+                    padding: '0.7rem 2rem',
+                    fontWeight: 700,
+                    fontSize: '1rem',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+                    cursor: 'pointer',
+                    marginTop: '0.5rem',
+                  }}
+                  onClick={() => navigate('/order')}
+                >Fill My Cylinder</button>
               </div>
             )}
         </div>
         <div style={{ marginTop: '2rem', fontSize: '0.98rem', color: theme === 'dark' ? '#38bdf8' : '#64748b', fontWeight: 500 }}>
-          <span>100% Offline Support • Secure Pickup Codes • PWA Ready</span>
+          <span>Order LPG Gas•Fast•Secure•Reliable•Secure Pickup Codes•</span>
         </div>
       </div>
     </div>
