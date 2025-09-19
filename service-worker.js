@@ -1,14 +1,20 @@
-// Listen for messages from the main thread to schedule notifications
+// Listen for messages from the main thread
 self.addEventListener('message', event => {
-  if (event.data && event.data.type === 'schedule-notification') {
-    const { title, options, delayMs } = event.data;
-    // Use setTimeout to schedule notification (note: survives as long as SW is alive)
-    setTimeout(() => {
-      self.registration.showNotification(title, options);
-    }, delayMs || 2 * 60 * 1000); // Default: 2 minutes
+  if (event.data) {
+    // Handle notification scheduling
+    if (event.data.type === 'schedule-notification') {
+      const { title, options, delayMs } = event.data;
+      setTimeout(() => {
+        self.registration.showNotification(title, options);
+      }, delayMs || 2 * 60 * 1000);
+    }
+    // Handle skip waiting for new SW
+    if (event.data.type === 'SKIP_WAITING') {
+      self.skipWaiting();
+    }
   }
 });
-const CACHE_NAME = 'tapgas-cache-v2'; // Increment for each deploy
+const CACHE_NAME = 'tapgas-cache-v3'; // Increment for each deploy
 const urlsToCache = [
   '/tapgas/',
   '/tapgas/index.html',
@@ -25,8 +31,9 @@ self.addEventListener('install', event => {
         console.log('[ServiceWorker] Pre-caching offline page');
         return cache.addAll(urlsToCache);
       })
-      .then(() => self.skipWaiting())
   );
+  // Call skipWaiting to activate new SW immediately
+  self.skipWaiting();
 });
 
 self.addEventListener('activate', event => {
@@ -43,6 +50,8 @@ self.addEventListener('activate', event => {
       );
     }).then(() => self.clients.claim())
   );
+  // Take control of all clients immediately
+  self.clients.claim();
 });
 
 self.addEventListener('fetch', event => {
