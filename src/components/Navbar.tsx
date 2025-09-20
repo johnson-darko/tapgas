@@ -165,7 +165,7 @@ const Navbar: React.FC = () => {
         }}
         title="Go to Home"
       >
-        GASMAN
+  <img src="icons/icon-512x512.png" alt="GASMAN Logo" style={{ height: 70, objectFit: 'contain', verticalAlign: 'middle' }} />
       </button>
       <div style={{ display: 'flex', alignItems: 'center', position: 'relative' }}>
         <button onClick={handleRefresh} style={{

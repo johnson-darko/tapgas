@@ -25,6 +25,39 @@ const LoginModal: React.FC<LoginModalProps> = ({ email: initialEmail = '', onSuc
       setLoading(false);
       return;
     }
+    // Special case: test@gmail.com skips code step and logs in instantly
+    if (email.trim().toLowerCase() === 'test@gmail.com') {
+      try {
+        const res = await fetch(`${import.meta.env.VITE_API_BASE || ''}/auth/verify-code`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, code: '000000' }) // code is ignored for test user
+        });
+        if (!res.ok) throw new Error('Instant login failed');
+        const data = await res.json();
+        if (data.token) {
+          localStorage.setItem('authToken', data.token);
+        }
+        const profile = getProfile();
+        saveProfile({
+          ...profile,
+          email,
+          role: data.user?.role || 'customer',
+          referral_code: data.user?.referral_code || undefined
+        });
+        onSuccess();
+        window.location.reload();
+      } catch (err: unknown) {
+        if (err instanceof Error) {
+          setError(err.message || 'Error logging in');
+        } else {
+          setError('Error logging in');
+        }
+      }
+      setLoading(false);
+      return;
+    }
+    // Normal flow for all other users
     try {
       const res = await fetch(`${import.meta.env.VITE_API_BASE || ''}/auth/send-code`, {
         method: 'POST',
@@ -33,8 +66,12 @@ const LoginModal: React.FC<LoginModalProps> = ({ email: initialEmail = '', onSuc
       });
       if (!res.ok) throw new Error('Failed to send code');
       setStep('code');
-    } catch (err: any) {
-      setError(err.message || 'Error sending code');
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message || 'Error sending code');
+      } else {
+        setError('Error sending code');
+      }
     }
     setLoading(false);
   };
@@ -63,8 +100,12 @@ const LoginModal: React.FC<LoginModalProps> = ({ email: initialEmail = '', onSuc
       });
       onSuccess();
       window.location.reload(); // Reload to update profile/nav with new role
-    } catch (err: any) {
-      setError(err.message || 'Error verifying code');
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message || 'Error verifying code');
+      } else {
+        setError('Error verifying code');
+      }
     }
     setLoading(false);
   };
