@@ -25,8 +25,8 @@ export async function scheduleOrderReminderNotification(delayMs = 2 * 60 * 1000)
     await LocalNotifications.schedule({
       notifications: [
         {
-          title: 'TapGas Order Reminder',
-          body: 'Remember to follow up on your recent TapGas order!',
+          title: 'Gasman Order Reminder',
+          body: 'Remember to schedule a gas refill if you are running low or empty!',
           id: Math.floor(Math.random() * 100000),
           schedule: { at: triggerDate },
         },
@@ -34,8 +34,8 @@ export async function scheduleOrderReminderNotification(delayMs = 2 * 60 * 1000)
     });
   } else if ('Notification' in window) {
     setTimeout(() => {
-      new Notification('TapGas Order Reminder', {
-        body: 'Remember to follow up on your recent TapGas order!',
+      new Notification('Gasman Order Reminder', {
+        body: 'Remember to schedule a gas refill if you are running low or empty!',
         icon: '/tapgas/vite.svg',
         tag: 'order-reminder',
       });
