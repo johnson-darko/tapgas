@@ -177,7 +177,7 @@ const Profile: React.FC = () => {
                     onClick={() => {
                       localStorage.removeItem('authToken');
                       localStorage.removeItem('tapgas_profile');
-                      window.location.href = '/tapgas/';
+                      window.location.href = '/';
                     }}
                     style={{
                       background: '#ef4444',

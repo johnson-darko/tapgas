@@ -61,10 +61,6 @@ const App: React.FC = () => {
   const [waitingSW, setWaitingSW] = useState<ServiceWorker | null>(null);
 
   useEffect(() => {
-    // If no hash, redirect to hash route
-    if (window.location.pathname.endsWith('/tapgas/') && !window.location.hash) {
-      window.location.replace(window.location.pathname + '#/');
-    }
     const timer = setTimeout(() => setShowSplash(false), 2000); // 2 seconds
     return () => clearTimeout(timer);
   }, []);

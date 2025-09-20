@@ -112,7 +112,7 @@ const Navbar: React.FC = () => {
   const handleRefresh = async () => {
     try {
       // Try to fetch a small resource to check connectivity
-      const res = await fetch('/tapgas/manifest.json', { method: 'HEAD', cache: 'no-store' });
+  const res = await fetch('/manifest.json', { method: 'HEAD', cache: 'no-store' });
       if (!res.ok) throw new Error('Offline');
       // Clear all caches and reload
       if ('caches' in window) {

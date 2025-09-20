@@ -5,7 +5,7 @@ const config: CapacitorConfig = {
   appName: 'GASMAN',
   webDir: 'dist',
   server: {
-    url: 'https://johnson-darko.github.io/tapgas/', // Always load from your deployed GitHub Pages site
+    url: 'https://gasmanapp.com/', // Always load from your deployed custom domain
     cleartext: true
   }
 };

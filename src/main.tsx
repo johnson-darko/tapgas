@@ -16,7 +16,7 @@ createRoot(document.getElementById('root')!).render(
 // Register service worker for PWA/offline support
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/tapgas/service-worker.js')
+  navigator.serviceWorker.register('/service-worker.js')
       .then(reg => {
         console.log('Service worker registered:', reg);
       })
