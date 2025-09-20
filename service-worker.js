@@ -14,12 +14,12 @@ self.addEventListener('message', event => {
     }
   }
 });
-const CACHE_NAME = 'tapgas-cache-v13'; // Increment for each deploy
+const CACHE_NAME = 'tapgas-cache-v14'; // Increment for each deploy
 const urlsToCache = [
-  '/tapgas/',
-  '/tapgas/index.html',
-  '/tapgas/manifest.json',
-  '/tapgas/vite.svg',
+  '/',
+  '/index.html',
+  '/manifest.json',
+  '/vite.svg',
   // Add other assets as needed
 ];
 
@@ -79,7 +79,7 @@ self.addEventListener('fetch', event => {
       })
       .catch(() => {
         if (event.request.destination === 'document') {
-          return caches.match('/tapgas/');
+          return caches.match('/');
         }
         return undefined;
       })

@@ -13,8 +13,8 @@
       "sizes": "512x512"
     }
   ],
-  "start_url": "https://johnson-darko.github.io/tapgas/#/",
-  "scope": "https://johnson-darko.github.io/tapgas/",
+  "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#0f172a",
