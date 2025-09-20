@@ -17,6 +17,7 @@ const Profile: React.FC = () => {
   const lastOrder = orders.length > 0 ? orders[0] : null;
   const [showLogin, setShowLogin] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(() => !!localStorage.getItem('authToken'));
+  const [editCylinders, setEditCylinders] = useState(profile.cylinders_count || '');
   let addressDisplay = 'No address yet';
   if (lastOrder) {
     addressDisplay = lastOrder.location && lastOrder.address.match(/^Lat: (-?\d+\.\d+), Lng: (-?\d+\.\d+)$/)
@@ -112,10 +113,10 @@ const Profile: React.FC = () => {
                   'Content-Type': 'application/json',
                   ...(token ? { Authorization: `Bearer ${token}` } : {}),
                 },
-                body: JSON.stringify({ name: editName, phone_number: editPhone }),
+                body: JSON.stringify({ name: editName, phone_number: editPhone, cylinders_count: editCylinders }),
               });
               if (!res.ok) throw new Error('Failed to update profile in cloud');
-              const updated = { ...profile, name: editName, phone: editPhone };
+              const updated = { ...profile, name: editName, phone: editPhone, cylinders_count: editCylinders };
               saveProfile(updated);
               setProfile(updated);
               setEditing(false);
@@ -139,6 +140,18 @@ const Profile: React.FC = () => {
               style={{ padding: '0.7rem', borderRadius: '0.8rem', border: '1px solid #e5e7eb', fontSize: '1rem' }}
               required
             />
+            <label style={{ fontWeight: 600 }}>How many gas cylinders do you use?</label>
+            <select
+              value={editCylinders}
+              onChange={e => setEditCylinders(e.target.value)}
+              required
+              style={{ padding: '0.7rem', borderRadius: '0.8rem', border: '1px solid #e5e7eb', fontSize: '1rem' }}
+            >
+              <option value="" disabled>Select...</option>
+              <option value="1">1</option>
+              <option value="2">2</option>
+              <option value=">3">More than 3</option>
+            </select>
             <button type="submit" style={{
               background: theme === 'dark' ? '#38bdf8' : '#0f172a',
               color: theme === 'dark' ? '#0f172a' : '#fff',
@@ -153,6 +166,11 @@ const Profile: React.FC = () => {
         ) : (
           <>
             <div style={{ fontWeight: 600, fontSize: '1.1rem', marginBottom: '0.5rem' }}>{profile.name}</div>
+            {profile.cylinders_count && (
+              <div style={{ marginBottom: '0.5rem', color: '#0ea5e9', fontSize: '0.98rem', fontWeight: 700 }}>
+                Cylinders Used: {profile.cylinders_count}
+              </div>
+            )}
             {profile.role && (
               <div style={{ marginBottom: '0.5rem', color: '#f59e42', fontSize: '0.98rem', fontWeight: 700 }}>
                 Role: {profile.role}

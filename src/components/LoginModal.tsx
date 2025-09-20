@@ -10,11 +10,12 @@ interface LoginModalProps {
 
 const LoginModal: React.FC<LoginModalProps> = ({ email: initialEmail = '', onSuccess, onClose }) => {
   const { theme } = useTheme();
-  const [step, setStep] = useState<'email' | 'code'>('email');
+  const [step, setStep] = useState<'email' | 'code' | 'cylinders'>('email');
   const [email, setEmail] = useState(initialEmail);
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [cylindersCount, setCylindersCount] = useState('');
 
   const isGmail = email.trim().toLowerCase().endsWith('@gmail.com');
   const handleSendCode = async () => {
@@ -92,6 +93,12 @@ const LoginModal: React.FC<LoginModalProps> = ({ email: initialEmail = '', onSuc
       }
       // Save email, role, and referral_code to profile
       const profile = getProfile();
+      // If cylinders_count is missing, require it before completing login
+      if (!profile?.cylinders_count) {
+        setStep('cylinders');
+        setLoading(false);
+        return;
+      }
       saveProfile({
         ...profile,
         email,
@@ -105,6 +112,47 @@ const LoginModal: React.FC<LoginModalProps> = ({ email: initialEmail = '', onSuc
         setError(err.message || 'Error verifying code');
       } else {
         setError('Error verifying code');
+      }
+    }
+    setLoading(false);
+  };
+
+  // Handle cylinders_count submission
+  const handleCylindersSubmit = async () => {
+    setLoading(true);
+    setError('');
+    const count = parseInt(cylindersCount, 10);
+    if (isNaN(count) || count < 1) {
+      setError('Please enter a valid number of cylinders (at least 1)');
+      setLoading(false);
+      return;
+    }
+    try {
+      // Save to backend
+      const token = localStorage.getItem('authToken');
+      const res = await fetch(`${import.meta.env.VITE_API_BASE || ''}/profile`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ cylinders_count: count }),
+      });
+      if (!res.ok) throw new Error('Failed to save cylinders count');
+      // Update local profile
+      const profile = getProfile() || {};
+      profile.cylinders_count = count;
+      saveProfile(profile);
+      setStep('email'); // Reset for next login
+      setCylindersCount('');
+      setError('');
+      onSuccess();
+      window.location.reload();
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message || 'Failed to save cylinders count');
+      } else {
+        setError('Failed to save cylinders count');
       }
     }
     setLoading(false);
@@ -132,11 +180,33 @@ const LoginModal: React.FC<LoginModalProps> = ({ email: initialEmail = '', onSuc
             </div>
             <button onClick={handleSendCode} disabled={loading || !email || !isGmail} style={{ width: '100%', padding: '0.9rem', borderRadius: '2rem', background: '#38bdf8', color: '#fff', fontWeight: 700, fontSize: '1.1rem', border: 'none', cursor: 'pointer', opacity: (!email || !isGmail) ? 0.6 : 1 }}>Send Verification Code</button>
           </>
-        ) : (
+        ) : step === 'code' ? (
           <>
             <label style={{ fontWeight: 600 }}>Enter 6-digit Code</label>
             <input type="text" value={code} onChange={e => setCode(e.target.value)} maxLength={6} style={{ width: '100%', padding: '0.8rem', borderRadius: '0.8rem', border: '1px solid #e5e7eb', marginBottom: '1.2rem', fontSize: '1rem', letterSpacing: '0.3em' }} />
             <button onClick={handleVerifyCode} disabled={loading || code.length !== 6} style={{ width: '100%', padding: '0.9rem', borderRadius: '2rem', background: theme === 'dark' ? '#fbbf24' : '#38bdf8', color: theme === 'dark' ? '#0f172a' : '#fff', fontWeight: 700, fontSize: '1.1rem', border: 'none', cursor: 'pointer' }}>Confirm Code</button>
+          </>
+        ) : (
+          <>
+            <label style={{ fontWeight: 600 }}>How many gas cylinders do you have at home?</label>
+            <input
+              type="number"
+              min={1}
+              value={cylindersCount}
+              onChange={e => setCylindersCount(e.target.value.replace(/[^0-9]/g, ''))}
+              placeholder="e.g. 2"
+              style={{ width: '100%', padding: '0.8rem', borderRadius: '0.8rem', border: '1px solid #e5e7eb', marginBottom: '1.2rem', fontSize: '1rem' }}
+            />
+            <div style={{ color: '#64748b', fontSize: '0.95rem', marginBottom: '1.2rem' }}>
+              This helps us plan for better service and delivery in your area.
+            </div>
+            <button
+              onClick={handleCylindersSubmit}
+              disabled={loading || !cylindersCount || parseInt(cylindersCount, 10) < 1}
+              style={{ width: '100%', padding: '0.9rem', borderRadius: '2rem', background: '#38bdf8', color: '#fff', fontWeight: 700, fontSize: '1.1rem', border: 'none', cursor: 'pointer', opacity: (!cylindersCount || parseInt(cylindersCount, 10) < 1) ? 0.6 : 1 }}
+            >
+              Save & Continue
+            </button>
           </>
         )}
         {error && <div style={{ color: '#ef4444', marginTop: '1rem', fontWeight: 600 }}>{error}</div>}

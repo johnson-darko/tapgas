@@ -16,6 +16,7 @@ export type Profile = {
   name: string;
   phone: string;
   email?: string;
+  cylinders_count?: string;
   // add other fields as needed
 };
 export function saveProfile(profile: Profile) {
