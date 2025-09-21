@@ -43,6 +43,8 @@ const Order: React.FC = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(() => !!localStorage.getItem('authToken'));
   const { theme } = useTheme();
   const [orderType, setOrderType] = useState<'gas' | 'cylinder'>('gas');
+  // Info modal state
+  const [infoModal, setInfoModal] = useState<{ open: boolean, text: string }>({ open: false, text: '' });
   const [cylinder, setCylinder] = useState('');
   // New: Service type for LPG refill
   const [serviceType, setServiceType] = useState<'kiosk' | 'pickup' | null>(null);
@@ -511,12 +513,12 @@ const Order: React.FC = () => {
               <div>
                 <label style={{ fontWeight: 600, color: theme === 'dark' ? '#38bdf8' : '#334155', fontSize: '0.7rem' }}>Choose Service Type</label>
                 <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem' }}>
-                  <button type="button" onClick={() => { setServiceType('kiosk'); setTimeSlot(null); setDeliveryWindow(null); }}
+                  {/*<button type="button" onClick={() => { setServiceType('kiosk'); setTimeSlot(null); setDeliveryWindow(null); }}
                     style={{
                       background: serviceType === 'kiosk' ? (theme === 'dark' ? '#38bdf8' : '#0f172a') : (theme === 'dark' ? '#23272f' : '#e5e7eb'),
                       color: serviceType === 'kiosk' ? (theme === 'dark' ? '#0f172a' : '#fff') : (theme === 'dark' ? '#fbbf24' : '#334155'),
                       border: 'none', borderRadius: '1rem', padding: '0.49rem 1.05rem', fontWeight: 600, cursor: 'pointer', fontSize: '0.7rem', transition: 'background 0.2s',
-                    }}>Drop off at Kiosk</button>
+                    }}>Drop off at Kiosk</button>*/}
                   <button type="button" onClick={() => { setServiceType('pickup'); setTimeSlot(null); setDeliveryWindow(null); }}
                     style={{
                       background: serviceType === 'pickup' ? (theme === 'dark' ? '#38bdf8' : '#0f172a') : (theme === 'dark' ? '#23272f' : '#e5e7eb'),
@@ -528,7 +530,10 @@ const Order: React.FC = () => {
               {/* Step 2: Time slot selection */}
               {serviceType && (
                 <div>
-                  <label style={{ fontWeight: 600, color: theme === 'dark' ? '#38bdf8' : '#334155', fontSize: '0.7rem' }}>Select {serviceType === 'kiosk' ? 'Drop-off' : 'Pickup'} Date</label>
+                  <label style={{ fontWeight: 600, color: theme === 'dark' ? '#38bdf8' : '#334155', fontSize: '0.7rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                    Select {serviceType === 'kiosk' ? 'Drop-off' : 'Pickup'} Date
+                    <span style={{ cursor: 'pointer' }} title="More info" onClick={() => setInfoModal({ open: true, text: 'Select when you want us to come over to your house to pick up the empty cylinder.' })}>ℹ️</span>
+                  </label>
                   <input
                     type="date"
                     value={selectedDate}
@@ -555,19 +560,22 @@ const Order: React.FC = () => {
                         color: timeSlot === 'morning' ? (theme === 'dark' ? '#0f172a' : '#fff') : (theme === 'dark' ? '#38bdf8' : '#334155'),
                         border: 'none', borderRadius: '1rem', padding: '0.49rem 1.05rem', fontWeight: 600, cursor: 'pointer', fontSize: '0.7rem', transition: 'background 0.2s',
                       }}>Morning (4:30–9:00 AM)</button>
-                    <button type="button" onClick={() => handleTimeSlotSelect('evening')}
+                    {/*<button type="button" onClick={() => handleTimeSlotSelect('evening')}
                       style={{
                         background: timeSlot === 'evening' ? (theme === 'dark' ? '#fbbf24' : '#38bdf8') : (theme === 'dark' ? '#23272f' : '#e5e7eb'),
                         color: timeSlot === 'evening' ? (theme === 'dark' ? '#0f172a' : '#fff') : (theme === 'dark' ? '#38bdf8' : '#334155'),
                         border: 'none', borderRadius: '1rem', padding: '0.49rem 1.05rem', fontWeight: 600, cursor: 'pointer', fontSize: '0.7rem', transition: 'background 0.2s',
-                      }}>Evening (4:30–8:00 PM)</button>
+                      }}>Evening (4:30–8:00 PM)</button>*/}
                   </div>
                 </div>
               )}
               {/* Step 3: Delivery window selection */}
               {serviceType && timeSlot && (
                 <div>
-                  <label style={{ fontWeight: 600, color: theme === 'dark' ? '#38bdf8' : '#334155' }}>Choose Delivery Window</label>
+                  <label style={{ fontWeight: 600, color: theme === 'dark' ? '#38bdf8' : '#334155', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                    Choose Delivery Window
+                    <span style={{ cursor: 'pointer' }} title="More info" onClick={() => setInfoModal({ open: true, text: 'Choose the time range you want us to deliver your filled cylinder to your house. Please make sure you would be at home within the time window.' })}>ℹ️</span>
+                  </label>
                   <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
                     {timeSlot === 'morning' ? (
                         <button type="button" onClick={() => setDeliveryWindow('sameDayEvening')}
@@ -598,7 +606,59 @@ const Order: React.FC = () => {
             </>
           )}
           <div>
-            <label style={{ fontWeight: 600, color: theme === 'dark' ? '#38bdf8' : '#334155', fontSize: '0.7rem' }}>Address</label>
+            <label style={{ fontWeight: 600, color: theme === 'dark' ? '#38bdf8' : '#334155', fontSize: '0.7rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+              Address
+              <span style={{ cursor: 'pointer' }} title="More info" onClick={() => setInfoModal({ open: true, text: 'Make sure you are at the house/home where we would deliver the cylinder and click My Location.' })}>ℹ️</span>
+            </label>
+      {/* Info Modal */}
+      {infoModal.open && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
+          background: 'rgba(0,0,0,0.35)',
+          zIndex: 10000,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+          onClick={() => setInfoModal({ open: false, text: '' })}
+        >
+          <div style={{
+            background: theme === 'dark' ? '#23272f' : '#fff',
+            color: theme === 'dark' ? '#fbbf24' : '#0f172a',
+            borderRadius: '1.2rem',
+            boxShadow: '0 4px 24px rgba(0,0,0,0.18)',
+            padding: '2rem 2.2rem',
+            minWidth: '260px',
+            maxWidth: '90vw',
+            textAlign: 'center',
+            position: 'relative',
+          }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ fontWeight: 700, fontSize: '1.1rem', marginBottom: '1.2rem' }}>Explanation</div>
+            <div style={{ fontSize: '1rem', marginBottom: '1.5rem' }}>{infoModal.text}</div>
+            <button
+              style={{
+                background: theme === 'dark' ? '#38bdf8' : '#0f172a',
+                color: theme === 'dark' ? '#0f172a' : '#fff',
+                border: 'none',
+                borderRadius: '0.7rem',
+                padding: '0.5rem 1.2rem',
+                fontWeight: 600,
+                fontSize: '1rem',
+                cursor: 'pointer',
+                display: 'block',
+                margin: '0 auto',
+              }}
+              onClick={() => setInfoModal({ open: false, text: '' })}
+            >Cancel</button>
+          </div>
+        </div>
+      )}
             <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginTop: '0.5rem' }}>
               <input
                 type="text"

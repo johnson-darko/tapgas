@@ -77,7 +77,7 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, onCheckUpdate, showCheckUp
           </div>
         )}
         <div style={{ fontWeight: 800, fontSize: '1.2rem', color: theme === 'dark' ? '#38bdf8' : '#0f172a', letterSpacing: '-1px', marginBottom: '0.2rem' }}>
-          <span role="img" aria-label="cylinder">🛢️</span> {order.cylinderType}
+          <span role="img" aria-label="cylinder"></span> {order.cylinderType}
         </div>
         {/* Removed Customer name display as requested */}
         <div style={{ fontSize: '0.98rem' }}>
