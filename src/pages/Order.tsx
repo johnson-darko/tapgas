@@ -35,7 +35,7 @@ const Order: React.FC = () => {
       const profile = JSON.parse(localStorage.getItem('profile') || '{}');
       if (profile && profile.referral_code) setMyReferralCode(profile.referral_code);
       if (profile && profile.referred_by) setAlreadyReferred(true);
-    } catch (e) {
+    } catch {
       // ignore
     }
   }, []);
@@ -59,9 +59,9 @@ const Order: React.FC = () => {
     if (!match) return [null, null];
     const [, startH, startM, endH, endM, ampm] = match;
     let sH = parseInt(startH, 10);
-    let sM = parseInt(startM, 10);
-    let eH = parseInt(endH, 10);
-    let eM = parseInt(endM, 10);
+  const sM = parseInt(startM, 10);
+  let eH = parseInt(endH, 10);
+  const eM = parseInt(endM, 10);
     if (ampm.toLowerCase() === 'pm' && sH < 12) { sH += 12; eH += 12; }
     if (ampm.toLowerCase() === 'am' && sH === 12) { sH = 0; }
     if (ampm.toLowerCase() === 'am' && eH === 12) { eH = 0; }
@@ -138,7 +138,8 @@ const Order: React.FC = () => {
     // Build order object (no orderId)
     const localUniqueCode = Math.floor(100000 + Math.random() * 900000);
     // Use 'any' to allow dynamic fields like referralCode
-    const newOrder: any = {
+  // Use Partial<OrderType> to avoid 'any' and allow dynamic fields
+  const newOrder: Partial<OrderType> & { referralCode?: string } = {
       customerName: 'User', // Replace with actual user if available
       address,
       location: (() => {
@@ -210,6 +211,24 @@ const Order: React.FC = () => {
           console.log('Saving order to local storage:', data.order);
           saveOrder(data.order);
 
+          // Immediately fetch the latest order data from backend to update local storage (for real coordinates)
+          try {
+            const checkRes = await fetch(`${import.meta.env.VITE_API_BASE || ''}/order/check`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ email: data.order.email, uniqueCode: data.order.uniqueCode })
+            });
+            if (checkRes.ok) {
+              const checkData = await checkRes.json();
+              if (checkData && checkData.success && checkData.order) {
+                saveOrder(checkData.order);
+              }
+            }
+          } catch {
+            // Could not fetch latest order data after placement
+// (No other changes needed)
+          }
+
           // Schedule local notification in 2 minutes (Capacitor or browser)
           scheduleOrderReminderNotification(2 * 60 * 1000);
         }
@@ -217,6 +236,9 @@ const Order: React.FC = () => {
         setSuccess(true);
         setTimeout(() => {
           setTimeout(() => {
+            // Set a sessionStorage flag to trigger auto-check on Home
+            sessionStorage.setItem('tapgas_auto_check_order', '1');
+            window.dispatchEvent(new Event('tapgas-orders-updated'));
             navigate('/track');
           }, 5000);
         }, 1200);

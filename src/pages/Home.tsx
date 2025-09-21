@@ -79,6 +79,31 @@ const Home: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>(getOrders());
   useEffect(() => {
     setOrders(getOrders());
+    // Listen for custom event to refresh orders after order placement
+    const handler = () => setOrders(getOrders());
+    window.addEventListener('tapgas-orders-updated', handler);
+
+    // On mount, if there is a recent order, auto-fetch its latest data from backend (simulate Check Updates)
+    const allOrders = getOrders();
+    // Sort by date descending (most recent first)
+    const sorted = [...allOrders].sort((a, b) => {
+      const aDate = new Date(a.date || a.created_at || 0).getTime();
+      const bDate = new Date(b.date || b.created_at || 0).getTime();
+      return bDate - aDate;
+    });
+    const mostRecent = sorted[0];
+    // Only auto-check if sessionStorage flag is set (after order placement)
+    if (
+      sessionStorage.getItem('tapgas_auto_check_order') === '1' &&
+      mostRecent && mostRecent.uniqueCode && mostRecent.status !== 'delivered' && mostRecent.status !== 'failed'
+    ) {
+      setTimeout(() => {
+        checkOrderUpdate(mostRecent, true);
+        sessionStorage.removeItem('tapgas_auto_check_order');
+      }, 500); // slight delay to allow UI to mount
+    }
+
+    return () => window.removeEventListener('tapgas-orders-updated', handler);
   }, []);
   // Show the most recent order, even if delivered or failed, until a new order is placed
   let activeOrders = orders.filter((o: Order) => o.status !== 'delivered' && o.status !== 'failed');
@@ -130,7 +155,7 @@ const Home: React.FC = () => {
   const [showCheckModal, setShowCheckModal] = useState(false);
   const [checkModalMsg, setCheckModalMsg] = useState('');
 
-  async function checkOrderUpdate(order: Order): Promise<void> {
+  async function checkOrderUpdate(order: Order, force: boolean = false): Promise<void> {
     if (!profile.email || !order.uniqueCode) {
       setCheckModalMsg('Missing email or unique code.');
       setShowCheckModal(true);
@@ -143,53 +168,55 @@ const Home: React.FC = () => {
   const key = String(order.orderId ?? order.order_id ?? '');
   const lastStatus = lastFetchedStatus[key];
 
-    // 1. Before drop-off/pickup window
-    if (dropStart && now < dropStart) {
-      setCheckModalMsg('No updates available yet. Please check back during your drop-off/pickup window.');
-      setShowCheckModal(true);
-      return;
-    }
-
-    // 2. During drop-off/pickup window
-    if (dropStart && dropEnd && now >= dropStart && now <= dropEnd) {
-      if (status === 'onway' || lastStatus === 'onway') {
-        setCheckModalMsg('Order is on the way! You can check for updates again during your delivery window.');
+    if (!force) {
+      // 1. Before drop-off/pickup window
+      if (dropStart && now < dropStart) {
+        setCheckModalMsg('No updates available yet. Please check back during your drop-off/pickup window.');
         setShowCheckModal(true);
         return;
       }
-      // Allow fetch
-    }
 
-    // 3. During delivery window
-    if (delivStart && delivEnd && now >= delivStart && now <= delivEnd) {
-      if (status === 'delivered' || status === 'failed' || lastStatus === 'delivered' || lastStatus === 'failed') {
-        setCheckModalMsg('Order is complete. No further updates available.');
+      // 2. During drop-off/pickup window
+      if (dropStart && dropEnd && now >= dropStart && now <= dropEnd) {
+        if (status === 'onway' || lastStatus === 'onway') {
+          setCheckModalMsg('Order is on the way! You can check for updates again during your delivery window.');
+          setShowCheckModal(true);
+          return;
+        }
+        // Allow fetch
+      }
+
+      // 3. During delivery window
+      if (delivStart && delivEnd && now >= delivStart && now <= delivEnd) {
+        if (status === 'delivered' || status === 'failed' || lastStatus === 'delivered' || lastStatus === 'failed') {
+          setCheckModalMsg('Order is complete. No further updates available.');
+          setShowCheckModal(true);
+          return;
+        }
+        // Allow fetch
+      }
+
+      // 4. After delivery window (up to 24h)
+      if (delivEnd && now > delivEnd) {
+        // Only allow fetch if not delivered/failed and within 24h
+        const hoursSinceEnd = (now.getTime() - (delivEnd?.getTime?.() ?? 0)) / (1000 * 60 * 60);
+        if ((status === 'delivered' || status === 'failed' || lastStatus === 'delivered' || lastStatus === 'failed') || hoursSinceEnd > 24) {
+          setCheckModalMsg('Order is complete. No further updates available.');
+          setShowCheckModal(true);
+          return;
+        }
+        // Allow fetch
+      }
+
+      // If not in any window, block fetch
+      if (
+        (!dropStart || !dropEnd || now < dropStart) &&
+        (!delivStart || !delivEnd || now < delivStart)
+      ) {
+        setCheckModalMsg('No updates available yet. Please check back during your drop-off/pickup or delivery window.');
         setShowCheckModal(true);
         return;
       }
-      // Allow fetch
-    }
-
-    // 4. After delivery window (up to 24h)
-    if (delivEnd && now > delivEnd) {
-      // Only allow fetch if not delivered/failed and within 24h
-  const hoursSinceEnd = (now.getTime() - (delivEnd?.getTime?.() ?? 0)) / (1000 * 60 * 60);
-      if ((status === 'delivered' || status === 'failed' || lastStatus === 'delivered' || lastStatus === 'failed') || hoursSinceEnd > 24) {
-        setCheckModalMsg('Order is complete. No further updates available.');
-        setShowCheckModal(true);
-        return;
-      }
-      // Allow fetch
-    }
-
-    // If not in any window, block fetch
-    if (
-      (!dropStart || !dropEnd || now < dropStart) &&
-      (!delivStart || !delivEnd || now < delivStart)
-    ) {
-      setCheckModalMsg('No updates available yet. Please check back during your drop-off/pickup or delivery window.');
-      setShowCheckModal(true);
-      return;
     }
 
     // --- Fetch from cloud ---
