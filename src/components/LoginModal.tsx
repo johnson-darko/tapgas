@@ -10,14 +10,11 @@ interface LoginModalProps {
 
 const LoginModal: React.FC<LoginModalProps> = ({ email: initialEmail = '', onSuccess, onClose }) => {
   const { theme } = useTheme();
-  const [step, setStep] = useState<'email' | 'code' | 'cylinders'>('email');
+  const [step, setStep] = useState<'email' | 'code'>('email');
   const [email, setEmail] = useState(initialEmail);
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [cylindersCount, setCylindersCount] = useState('');
-  const [userName, setUserName] = useState('');
-  const [userPhone, setUserPhone] = useState('');
 
   const isGmail = email.trim().toLowerCase().endsWith('@gmail.com');
   const handleSendCode = async () => {
@@ -96,11 +93,6 @@ const LoginModal: React.FC<LoginModalProps> = ({ email: initialEmail = '', onSuc
       // Save email, role, and referral_code to profile
       const profile = getProfile();
       // If cylinders_count is missing, require it before completing login
-      if (!profile?.cylinders_count) {
-        setStep('cylinders');
-        setLoading(false);
-        return;
-      }
       saveProfile({
         ...profile,
         email,
@@ -120,54 +112,6 @@ const LoginModal: React.FC<LoginModalProps> = ({ email: initialEmail = '', onSuc
   };
 
   // Handle cylinders_count submission
-  const handleCylindersSubmit = async () => {
-    setLoading(true);
-    setError('');
-    const count = parseInt(cylindersCount, 10);
-    if (!userName.trim() || !userPhone.trim()) {
-      setError('Please enter your name and phone number');
-      setLoading(false);
-      return;
-    }
-    if (isNaN(count) || count < 1) {
-      setError('Please select how many cylinders you have');
-      setLoading(false);
-      return;
-    }
-    try {
-      // Save to backend
-      const token = localStorage.getItem('authToken');
-      const res = await fetch(`${import.meta.env.VITE_API_BASE || ''}/profile`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ name: userName.trim(), phone_number: userPhone.trim(), cylinders_count: count }),
-      });
-      if (!res.ok) throw new Error('Failed to save profile');
-      // Update local profile
-      const profile = getProfile() || {};
-      profile.name = userName.trim();
-      profile.phone = userPhone.trim();
-      profile.cylinders_count = count;
-      saveProfile(profile);
-      setStep('email'); // Reset for next login
-      setCylindersCount('');
-      setUserName('');
-      setUserPhone('');
-      setError('');
-      onSuccess();
-      window.location.reload();
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        setError(err.message || 'Failed to save profile');
-      } else {
-        setError('Failed to save profile');
-      }
-    }
-    setLoading(false);
-  };
 
   return (
     <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.25)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -191,61 +135,11 @@ const LoginModal: React.FC<LoginModalProps> = ({ email: initialEmail = '', onSuc
             </div>
             <button onClick={handleSendCode} disabled={loading || !email || !isGmail} style={{ width: '100%', padding: '0.9rem', borderRadius: '2rem', background: '#38bdf8', color: '#fff', fontWeight: 700, fontSize: '1.1rem', border: 'none', cursor: 'pointer', opacity: (!email || !isGmail) ? 0.6 : 1 }}>Send Verification Code</button>
           </>
-        ) : step === 'code' ? (
+        ) : (
           <>
             <label style={{ fontWeight: 600 }}>Enter 6-digit Code</label>
             <input type="text" value={code} onChange={e => setCode(e.target.value)} maxLength={6} style={{ width: '100%', padding: '0.8rem', borderRadius: '0.8rem', border: '1px solid #e5e7eb', marginBottom: '1.2rem', fontSize: '1rem', letterSpacing: '0.3em' }} />
             <button onClick={handleVerifyCode} disabled={loading || code.length !== 6} style={{ width: '100%', padding: '0.9rem', borderRadius: '2rem', background: theme === 'dark' ? '#fbbf24' : '#38bdf8', color: theme === 'dark' ? '#0f172a' : '#fff', fontWeight: 700, fontSize: '1.1rem', border: 'none', cursor: 'pointer' }}>Confirm Code</button>
-          </>
-        ) : (
-          <>
-            <label style={{ fontWeight: 600 }}>Name</label>
-            <input
-              type="text"
-              value={userName}
-              onChange={e => setUserName(e.target.value)}
-              placeholder="Your name"
-              style={{ width: '100%', padding: '0.8rem', borderRadius: '0.8rem', border: '1px solid #e5e7eb', marginBottom: '0.7rem', fontSize: '1rem' }}
-              required
-            />
-            <label style={{ fontWeight: 600 }}>Phone Number</label>
-            <input
-              type="tel"
-              value={userPhone}
-              onChange={e => setUserPhone(e.target.value.replace(/[^0-9+]/g, ''))}
-              placeholder="Your phone number"
-              style={{ width: '100%', padding: '0.8rem', borderRadius: '0.8rem', border: '1px solid #e5e7eb', marginBottom: '0.7rem', fontSize: '1rem' }}
-              required
-            />
-            <label style={{ fontWeight: 600 }}>How many gas cylinders do you have at home?</label>
-            <select
-              value={cylindersCount}
-              onChange={e => setCylindersCount(e.target.value)}
-              style={{ width: '100%', padding: '0.8rem', borderRadius: '0.8rem', border: '1px solid #e5e7eb', marginBottom: '1.2rem', fontSize: '1rem' }}
-              required
-            >
-              <option value="">Select number</option>
-              <option value="1">1</option>
-              <option value="2">2</option>
-              <option value="3">3</option>
-              <option value="4">4</option>
-              <option value="5">5</option>
-              <option value="6">6</option>
-              <option value="7">7</option>
-              <option value="8">8</option>
-              <option value="9">9</option>
-              <option value="10">10+</option>
-            </select>
-            <div style={{ color: '#64748b', fontSize: '0.95rem', marginBottom: '1.2rem' }}>
-              This helps us plan for better service and delivery in your area.
-            </div>
-            <button
-              onClick={handleCylindersSubmit}
-              disabled={loading || !userName.trim() || !userPhone.trim() || !cylindersCount}
-              style={{ width: '100%', padding: '0.9rem', borderRadius: '2rem', background: '#38bdf8', color: '#fff', fontWeight: 700, fontSize: '1.1rem', border: 'none', cursor: 'pointer', opacity: (!userName.trim() || !userPhone.trim() || !cylindersCount) ? 0.6 : 1 }}
-            >
-              Save & Continue
-            </button>
           </>
         )}
         {error && <div style={{ color: '#ef4444', marginTop: '1rem', fontWeight: 600 }}>{error}</div>}
