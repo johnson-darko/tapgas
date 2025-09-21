@@ -14,7 +14,7 @@ self.addEventListener('message', event => {
     }
   }
 });
-const CACHE_NAME = 'tapgas-cache-v14'; // Increment for each deploy
+const CACHE_NAME = 'tapgas-cache-v15'; // Increment for each deploy
 const urlsToCache = [
   '/',
   '/index.html',

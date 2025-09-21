@@ -16,6 +16,8 @@ const LoginModal: React.FC<LoginModalProps> = ({ email: initialEmail = '', onSuc
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [cylindersCount, setCylindersCount] = useState('');
+  const [userName, setUserName] = useState('');
+  const [userPhone, setUserPhone] = useState('');
 
   const isGmail = email.trim().toLowerCase().endsWith('@gmail.com');
   const handleSendCode = async () => {
@@ -122,8 +124,13 @@ const LoginModal: React.FC<LoginModalProps> = ({ email: initialEmail = '', onSuc
     setLoading(true);
     setError('');
     const count = parseInt(cylindersCount, 10);
+    if (!userName.trim() || !userPhone.trim()) {
+      setError('Please enter your name and phone number');
+      setLoading(false);
+      return;
+    }
     if (isNaN(count) || count < 1) {
-      setError('Please enter a valid number of cylinders (at least 1)');
+      setError('Please select how many cylinders you have');
       setLoading(false);
       return;
     }
@@ -136,23 +143,27 @@ const LoginModal: React.FC<LoginModalProps> = ({ email: initialEmail = '', onSuc
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ cylinders_count: count }),
+        body: JSON.stringify({ name: userName.trim(), phone_number: userPhone.trim(), cylinders_count: count }),
       });
-      if (!res.ok) throw new Error('Failed to save cylinders count');
+      if (!res.ok) throw new Error('Failed to save profile');
       // Update local profile
       const profile = getProfile() || {};
+      profile.name = userName.trim();
+      profile.phone = userPhone.trim();
       profile.cylinders_count = count;
       saveProfile(profile);
       setStep('email'); // Reset for next login
       setCylindersCount('');
+      setUserName('');
+      setUserPhone('');
       setError('');
       onSuccess();
       window.location.reload();
     } catch (err: unknown) {
       if (err instanceof Error) {
-        setError(err.message || 'Failed to save cylinders count');
+        setError(err.message || 'Failed to save profile');
       } else {
-        setError('Failed to save cylinders count');
+        setError('Failed to save profile');
       }
     }
     setLoading(false);
@@ -188,22 +199,50 @@ const LoginModal: React.FC<LoginModalProps> = ({ email: initialEmail = '', onSuc
           </>
         ) : (
           <>
-            <label style={{ fontWeight: 600 }}>How many gas cylinders do you have at home?</label>
+            <label style={{ fontWeight: 600 }}>Name</label>
             <input
-              type="number"
-              min={1}
-              value={cylindersCount}
-              onChange={e => setCylindersCount(e.target.value.replace(/[^0-9]/g, ''))}
-              placeholder="e.g. 2"
-              style={{ width: '100%', padding: '0.8rem', borderRadius: '0.8rem', border: '1px solid #e5e7eb', marginBottom: '1.2rem', fontSize: '1rem' }}
+              type="text"
+              value={userName}
+              onChange={e => setUserName(e.target.value)}
+              placeholder="Your name"
+              style={{ width: '100%', padding: '0.8rem', borderRadius: '0.8rem', border: '1px solid #e5e7eb', marginBottom: '0.7rem', fontSize: '1rem' }}
+              required
             />
+            <label style={{ fontWeight: 600 }}>Phone Number</label>
+            <input
+              type="tel"
+              value={userPhone}
+              onChange={e => setUserPhone(e.target.value.replace(/[^0-9+]/g, ''))}
+              placeholder="Your phone number"
+              style={{ width: '100%', padding: '0.8rem', borderRadius: '0.8rem', border: '1px solid #e5e7eb', marginBottom: '0.7rem', fontSize: '1rem' }}
+              required
+            />
+            <label style={{ fontWeight: 600 }}>How many gas cylinders do you have at home?</label>
+            <select
+              value={cylindersCount}
+              onChange={e => setCylindersCount(e.target.value)}
+              style={{ width: '100%', padding: '0.8rem', borderRadius: '0.8rem', border: '1px solid #e5e7eb', marginBottom: '1.2rem', fontSize: '1rem' }}
+              required
+            >
+              <option value="">Select number</option>
+              <option value="1">1</option>
+              <option value="2">2</option>
+              <option value="3">3</option>
+              <option value="4">4</option>
+              <option value="5">5</option>
+              <option value="6">6</option>
+              <option value="7">7</option>
+              <option value="8">8</option>
+              <option value="9">9</option>
+              <option value="10">10+</option>
+            </select>
             <div style={{ color: '#64748b', fontSize: '0.95rem', marginBottom: '1.2rem' }}>
               This helps us plan for better service and delivery in your area.
             </div>
             <button
               onClick={handleCylindersSubmit}
-              disabled={loading || !cylindersCount || parseInt(cylindersCount, 10) < 1}
-              style={{ width: '100%', padding: '0.9rem', borderRadius: '2rem', background: '#38bdf8', color: '#fff', fontWeight: 700, fontSize: '1.1rem', border: 'none', cursor: 'pointer', opacity: (!cylindersCount || parseInt(cylindersCount, 10) < 1) ? 0.6 : 1 }}
+              disabled={loading || !userName.trim() || !userPhone.trim() || !cylindersCount}
+              style={{ width: '100%', padding: '0.9rem', borderRadius: '2rem', background: '#38bdf8', color: '#fff', fontWeight: 700, fontSize: '1.1rem', border: 'none', cursor: 'pointer', opacity: (!userName.trim() || !userPhone.trim() || !cylindersCount) ? 0.6 : 1 }}
             >
               Save & Continue
             </button>
