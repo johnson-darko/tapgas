@@ -37,6 +37,7 @@ const statusColors: Record<string, string> = {
 const OrderCard: React.FC<OrderCardProps> = ({ order, onCheckUpdate, showCheckUpdate, role }) => {
   const { theme } = useTheme();
   const [showInfo, setShowInfo] = useState(false);
+  const [showQrModal, setShowQrModal] = useState(false);
   return (
     <div style={{
       borderRadius: '1.5rem',
@@ -204,39 +205,88 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, onCheckUpdate, showCheckUp
             <span role="img" aria-label="code">🔑</span> {order.uniqueCode}
           </div>
         )}
-        <div style={{ marginBottom: '0.7rem' }}>
-          <QRCodeCanvas value={(order.orderId ?? '').toString()} size={80} />
+        <div style={{ marginBottom: '0.7rem', cursor: 'pointer' }} onClick={() => setShowQrModal(true)}>
+          <QRCodeCanvas value={(order.orderId ?? '').toString()} size={80} style={{ filter: 'brightness(1.1)' }} />
           <div style={{ fontSize: '0.8rem', color: theme === 'dark' ? '#64748b' : '#334155', marginTop: '0.3rem' }}>Scan to confirm pickup</div>
         </div>
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.5rem',
-          color: statusColors[order.status] || (theme === 'dark' ? '#64748b' : '#334155'),
-          fontWeight: 800,
-          fontSize: '1.05rem',
-          textTransform: 'capitalize',
-          marginBottom: '0.3rem',
-        }}>
-          {order.status}
-          {typeof onCheckUpdate === 'function' && showCheckUpdate && (
-            <button
+        {/* QR Modal */}
+        {showQrModal && (
+          <div
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              width: '100vw',
+              height: '100vh',
+              background: 'rgba(0,0,0,0.5)',
+              zIndex: 9999,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+            onClick={() => setShowQrModal(false)}
+          >
+            <div
               style={{
-                marginLeft: '0.5rem',
-                fontSize: '0.85rem',
-                fontWeight: 600,
-                background: '#38bdf8',
-                color: '#fff',
-                border: 'none',
-                borderRadius: '0.7rem',
-                padding: '0.2rem 0.8rem',
-                cursor: 'pointer',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
+                background: '#fff',
+                borderRadius: '1.2rem',
+                padding: '2.5rem',
+                boxShadow: '0 8px 40px 8px rgba(0,0,0,0.25)',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                border: '2px solid #fbbf24',
               }}
-              onClick={e => { e.stopPropagation(); onCheckUpdate(); }}
-            >Check Updates</button>
-          )}
-        </div>
+              onClick={e => e.stopPropagation()}
+            >
+              <QRCodeCanvas value={(order.orderId ?? '').toString()} size={240} style={{ marginBottom: '1.2rem', filter: 'brightness(2) drop-shadow(0 0 16px #fff)' }} />
+              <button
+                style={{
+                  marginTop: '1.2rem',
+                  background: theme === 'dark' ? '#38bdf8' : '#0f172a',
+                  color: theme === 'dark' ? '#0f172a' : '#fff',
+                  border: 'none',
+                  borderRadius: '0.7rem',
+                  padding: '0.7rem 1.5rem',
+                  fontWeight: 600,
+                  fontSize: '1.1rem',
+                  cursor: 'pointer',
+                  display: 'block',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.10)'
+                }}
+                onClick={() => setShowQrModal(false)}
+              >Close</button>
+            </div>
+          </div>
+        )}
+         <div style={{
+           color: statusColors[order.status] || (theme === 'dark' ? '#64748b' : '#334155'),
+           fontWeight: 800,
+           fontSize: '1.05rem',
+           textTransform: 'capitalize',
+           marginBottom: '0.3rem',
+           textAlign: 'center',
+         }}>
+           {order.status}
+         </div>
+         {typeof onCheckUpdate === 'function' && showCheckUpdate && (
+           <div style={{ width: '100%', display: 'flex', justifyContent: 'center', marginBottom: '0.3rem' }}>
+             <button
+               style={{
+                 fontSize: '0.95rem',
+                 fontWeight: 600,
+                 background: '#38bdf8',
+                 color: '#fff',
+                 border: 'none',
+                 borderRadius: '0.7rem',
+                 padding: '0.4rem 1.2rem',
+                 cursor: 'pointer',
+                 boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
+               }}
+               onClick={e => { e.stopPropagation(); onCheckUpdate(); }}
+             >Check Updates</button>
+           </div>
+         )}
         <div style={{ fontSize: '0.9rem', color: theme === 'dark' ? '#38bdf8' : '#64748b', fontWeight: 500 }}>
           Order ID: {order.orderId ?? 'N/A'}
         </div>
