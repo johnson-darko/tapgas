@@ -1,4 +1,19 @@
 import React, { useState } from 'react';
+// Type for other addresses (should match Profile.tsx)
+type OtherAddress = {
+  name: string;
+  phone: string;
+  lat: string;
+  lng: string;
+};
+
+function getOtherAddresses(): OtherAddress[] {
+  try {
+    return JSON.parse(localStorage.getItem('tapgas_other_addresses') || '[]');
+  } catch {
+    return [];
+  }
+}
 import { Capacitor } from '@capacitor/core';
 import { Geolocation } from '@capacitor/geolocation';
 import { scheduleOrderReminderNotification } from '../utils/localNotification';
@@ -102,6 +117,10 @@ const Order: React.FC = () => {
   }
   const [deliveryWindow, setDeliveryWindow] = useState<'sameDayEvening' | 'nextMorning' | 'nextEvening' | null>(null);
   const [address, setAddress] = useState('');
+  // Address mode: 'my' or 'other'
+  const [addressMode, setAddressMode] = useState<'my' | 'other'>('my');
+  const [otherAddresses, setOtherAddresses] = useState<OtherAddress[]>(() => getOtherAddresses());
+  const [selectedOtherIdx, setSelectedOtherIdx] = useState<number>(-1);
   const [locating, setLocating] = useState(false);
   const [payment, setPayment] = useState('cash');
   const [showFillAnim, setShowFillAnim] = useState(false);
@@ -145,8 +164,15 @@ const Order: React.FC = () => {
       customerName: 'User', // Replace with actual user if available
       address,
       location: (() => {
+        // Only return lat/lng if both are valid numbers and not 0,0
         const match = address.match(/^Lat: (-?\d+\.\d+), Lng: (-?\d+\.\d+)$/);
-        if (match) return { lat: parseFloat(match[1]), lng: parseFloat(match[2]) };
+        if (match) {
+          const lat = parseFloat(match[1]);
+          const lng = parseFloat(match[2]);
+          if (!isNaN(lat) && !isNaN(lng) && (lat !== 0 || lng !== 0)) {
+            return { lat, lng };
+          }
+        }
         return undefined;
       })(),
       cylinderType: orderType === 'gas' ? cylinder : `${cylinder} Cylinder (${filled})`,
@@ -608,106 +634,179 @@ const Order: React.FC = () => {
           <div>
             <label style={{ fontWeight: 600, color: theme === 'dark' ? '#38bdf8' : '#334155', fontSize: '0.7rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
               Address
-              <span style={{ cursor: 'pointer' }} title="More info" onClick={() => setInfoModal({ open: true, text: 'Make sure you are at the house/home where we would deliver the cylinder and click My Location.' })}>ℹ️</span>
+              <span
+                style={{ cursor: 'pointer' }}
+                title="More info"
+                onClick={() => setInfoModal({
+                  open: true,
+                  text: '' // We'll render custom JSX below
+                })}
+              >ℹ️</span>
             </label>
-      {/* Info Modal */}
-      {infoModal.open && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          width: '100vw',
-          height: '100vh',
-          background: 'rgba(0,0,0,0.35)',
-          zIndex: 10000,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-          onClick={() => setInfoModal({ open: false, text: '' })}
-        >
-          <div style={{
-            background: theme === 'dark' ? '#23272f' : '#fff',
-            color: theme === 'dark' ? '#fbbf24' : '#0f172a',
-            borderRadius: '1.2rem',
-            boxShadow: '0 4px 24px rgba(0,0,0,0.18)',
-            padding: '2rem 2.2rem',
-            minWidth: '260px',
-            maxWidth: '90vw',
-            textAlign: 'center',
-            position: 'relative',
-          }}
-            onClick={e => e.stopPropagation()}
-          >
-            <div style={{ fontWeight: 700, fontSize: '1.1rem', marginBottom: '1.2rem' }}>Explanation</div>
-            <div style={{ fontSize: '1rem', marginBottom: '1.5rem' }}>{infoModal.text}</div>
-            <button
-              style={{
-                background: theme === 'dark' ? '#38bdf8' : '#0f172a',
-                color: theme === 'dark' ? '#0f172a' : '#fff',
-                border: 'none',
-                borderRadius: '0.7rem',
-                padding: '0.5rem 1.2rem',
-                fontWeight: 600,
-                fontSize: '1rem',
-                cursor: 'pointer',
-                display: 'block',
-                margin: '0 auto',
-              }}
-              onClick={() => setInfoModal({ open: false, text: '' })}
-            >Cancel</button>
-          </div>
-        </div>
-      )}
-            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginTop: '0.5rem' }}>
-              <input
-                type="text"
-                value={address}
-                readOnly
-                required
-                placeholder="Click 'My Location'"
-                style={{ flex: 1, padding: '0.49rem', borderRadius: '0.8rem', border: '1px solid #e5e7eb', fontSize: '0.7rem', background: '#f1f5f9', color: '#64748b' }}
-              />
-              <button
-                type="button"
-                onClick={async () => {
-                  setLocating(true);
-                  if (Capacitor.isNativePlatform()) {
-                    try {
-                      await Geolocation.requestPermissions();
-                      const pos = await Geolocation.getCurrentPosition();
-                      const { latitude, longitude } = pos.coords;
-                      setAddress(`Lat: ${latitude.toFixed(5)}, Lng: ${longitude.toFixed(5)}`);
-                      setLocating(false);
-                    } catch (err) {
-                      alert('Unable to get location. Please type your address.');
-                      setLocating(false);
-                    }
-                  } else if (navigator.geolocation) {
-                    navigator.geolocation.getCurrentPosition(
-                      pos => {
+            {/* Info Modal for address and other fields */}
+            {infoModal.open && (
+              <div
+                style={{
+                  position: 'fixed',
+                  top: 0,
+                  left: 0,
+                  width: '100vw',
+                  height: '100vh',
+                  background: 'rgba(0,0,0,0.35)',
+                  zIndex: 10000,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+                onClick={() => setInfoModal({ open: false, text: '' })}
+              >
+                <div
+                  style={{
+                    background: theme === 'dark' ? '#23272f' : '#fff',
+                    color: theme === 'dark' ? '#fbbf24' : '#0f172a',
+                    borderRadius: '1.2rem',
+                    boxShadow: '0 4px 24px rgba(0,0,0,0.18)',
+                    padding: '2rem 2.2rem',
+                    minWidth: '260px',
+                    maxWidth: '90vw',
+                    textAlign: 'center',
+                    position: 'relative',
+                  }}
+                  onClick={e => e.stopPropagation()}
+                >
+                  <div style={{ fontWeight: 700, fontSize: '1.1rem', marginBottom: '1.2rem' }}>Explanation</div>
+                  <div style={{ fontSize: '1rem', marginBottom: '1.5rem', textAlign: 'left' }}>
+                    <span style={{ color: '#e11d48', fontWeight: 700 }}>My Address:</span>
+                    <span> Select this but make sure you are at the house/home where we would deliver the cylinder and click My Location.</span>
+                    <hr style={{ border: 0, borderTop: '1px solid #e5e7eb', margin: '1.1rem 0' }} />
+                    <span style={{ color: '#e11d48', fontWeight: 700 }}>Different Address:</span>
+                    <span> Select this if you would want us to pickup/deliver at the person's address.</span>
+                  </div>
+                  <button
+                    style={{
+                      background: theme === 'dark' ? '#38bdf8' : '#0f172a',
+                      color: theme === 'dark' ? '#0f172a' : '#fff',
+                      border: 'none',
+                      borderRadius: '0.7rem',
+                      padding: '0.5rem 1.2rem',
+                      fontWeight: 600,
+                      fontSize: '1rem',
+                      cursor: 'pointer',
+                      display: 'block',
+                      margin: '0 auto',
+                    }}
+                    onClick={() => setInfoModal({ open: false, text: '' })}
+                  >Cancel</button>
+                </div>
+              </div>
+            )}
+            <div style={{ display: 'flex', gap: '1rem', margin: '0.5rem 0' }}>
+              <label style={{ fontSize: '0.7rem', fontWeight: 600 }}>
+                <input type="radio" name="addressMode" value="my" checked={addressMode === 'my'} onChange={() => {
+                  setAddressMode('my');
+                  setSelectedOtherIdx(-1);
+                  setNotes('');
+                  setAddress('');
+                }} /> My Address
+              </label>
+              <label style={{ fontSize: '0.7rem', fontWeight: 600 }}>
+                <input type="radio" name="addressMode" value="other" checked={addressMode === 'other'} onChange={() => {
+                  setAddressMode('other');
+                  setOtherAddresses(getOtherAddresses());
+                  setSelectedOtherIdx(-1);
+                  setAddress('');
+                  setNotes('');
+                }} /> Different Address
+              </label>
+            </div>
+            {addressMode === 'my' && (
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginTop: '0.5rem' }}>
+                <input
+                  type="text"
+                  value={address}
+                  readOnly
+                  required
+                  placeholder="Click 'My Location'"
+                  style={{ flex: 1, padding: '0.49rem', borderRadius: '0.8rem', border: '1px solid #e5e7eb', fontSize: '0.7rem', background: '#f1f5f9', color: '#64748b' }}
+                />
+                <button
+                  type="button"
+                  onClick={async () => {
+                    setLocating(true);
+                    if (Capacitor.isNativePlatform()) {
+                      try {
+                        await Geolocation.requestPermissions();
+                        const pos = await Geolocation.getCurrentPosition();
                         const { latitude, longitude } = pos.coords;
                         setAddress(`Lat: ${latitude.toFixed(5)}, Lng: ${longitude.toFixed(5)}`);
                         setLocating(false);
-                      },
-                      () => {
+                      } catch (err) {
                         alert('Unable to get location. Please type your address.');
                         setLocating(false);
                       }
-                    );
-                  } else {
-                    alert('Geolocation not supported.');
-                    setLocating(false);
-                  }
-                }}
-                style={{
-                  background: theme === 'dark' ? '#38bdf8' : '#0f172a',
-                  color: theme === 'dark' ? '#0f172a' : '#fff',
-                  border: 'none', borderRadius: '0.8rem', padding: '0.49rem 0.7rem', fontWeight: 600, cursor: 'pointer', fontSize: '0.665rem', transition: 'background 0.2s', minWidth: '28px'
-                }}
-                disabled={locating}
-              >{locating ? 'Locating...' : 'My Location'}</button>
-            </div>
+                    } else if (navigator.geolocation) {
+                      navigator.geolocation.getCurrentPosition(
+                        pos => {
+                          const { latitude, longitude } = pos.coords;
+                          setAddress(`Lat: ${latitude.toFixed(5)}, Lng: ${longitude.toFixed(5)}`);
+                          setLocating(false);
+                        },
+                        () => {
+                          alert('Unable to get location. Please type your address.');
+                          setLocating(false);
+                        }
+                      );
+                    } else {
+                      alert('Geolocation not supported.');
+                      setLocating(false);
+                    }
+                  }}
+                  style={{
+                    background: theme === 'dark' ? '#38bdf8' : '#0f172a',
+                    color: theme === 'dark' ? '#0f172a' : '#fff',
+                    border: 'none', borderRadius: '0.8rem', padding: '0.49rem 0.7rem', fontWeight: 600, cursor: 'pointer', fontSize: '0.665rem', transition: 'background 0.2s', minWidth: '28px'
+                  }}
+                  disabled={locating}
+                >{locating ? 'Locating...' : 'My Location'}</button>
+              </div>
+            )}
+            {addressMode === 'other' && (
+              <div style={{ marginTop: '0.5rem' }}>
+                {otherAddresses.length === 0 ? (
+                  <div style={{ color: '#ef4444', fontSize: '0.9rem', marginBottom: '0.7rem' }}>
+                    No saved different addresses. <a href="/#/profile" style={{ color: '#38bdf8', textDecoration: 'underline' }}>Go to Profile to add</a>
+                  </div>
+                ) : (
+                  <>
+                    <select
+                      value={selectedOtherIdx}
+                      onChange={e => {
+                        const idx = parseInt(e.target.value, 10);
+                        setSelectedOtherIdx(idx);
+                        const addr = otherAddresses[idx];
+                        setAddress(`Lat: ${addr.lat}, Lng: ${addr.lng}`);
+                        setNotes(`Please deliver to ${addr.name} (${addr.phone})`);
+                      }}
+                      required
+                      style={{ width: '100%', padding: '0.49rem', borderRadius: '0.8rem', border: '1px solid #e5e7eb', fontSize: '0.7rem', marginBottom: '0.7rem' }}
+                    >
+                      <option value={-1} disabled>Select saved address...</option>
+                      {otherAddresses.map((addr, idx) => (
+                        <option key={idx} value={idx}>{addr.name} ({addr.phone})</option>
+                      ))}
+                    </select>
+                    <input
+                      type="text"
+                      value={address}
+                      readOnly
+                      required
+                      placeholder="Lat/Lng will appear here"
+                      style={{ width: '100%', padding: '0.49rem', borderRadius: '0.8rem', border: '1px solid #e5e7eb', fontSize: '0.7rem', background: '#f1f5f9', color: '#64748b', marginBottom: '0.5rem' }}
+                    />
+                  </>
+                )}
+              </div>
+            )}
             {/* Satellite map view if address is coordinates (Google Maps) */}
             {/^Lat: (-?\d+\.\d+), Lng: (-?\d+\.\d+)$/.test(address) && (() => {
               const match = address.match(/^Lat: (-?\d+\.\d+), Lng: (-?\d+\.\d+)$/);

@@ -18,12 +18,14 @@ const Profile: React.FC = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(() => !!localStorage.getItem('authToken'));
   const [editCylinders, setEditCylinders] = useState(profile.cylinders_count || '');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  let addressDisplay = 'No address yet';
-  if (lastOrder) {
-    addressDisplay = lastOrder.location && lastOrder.address.match(/^Lat: (-?\d+\.\d+), Lng: (-?\d+\.\d+)$/)
-      ? `Address Coordinates: ${lastOrder.location.lat},${lastOrder.location.lng}`
-      : `Address: ${lastOrder.address}`;
-  }
+
+// Type for other addresses (should match Order.tsx)
+type OtherAddress = {
+  name: string;
+  phone: string;
+  lat: string;
+  lng: string;
+};
 
   // Request notification permission on mount if native
   useEffect(() => {
