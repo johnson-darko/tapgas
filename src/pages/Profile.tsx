@@ -2,22 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { useTheme } from '../useTheme';
-import { getOrders } from '../utils/orderStorage';
+
 import { getProfile, saveProfile } from '../utils/profileStorage';
 import LoginModal from '../components/LoginModal';
-
-const Profile: React.FC = () => {
-  const { theme } = useTheme();
-  const [profile, setProfile] = useState(getProfile());
-  const [editing, setEditing] = useState(false);
-  const [editName, setEditName] = useState(profile.name);
-  const [editPhone, setEditPhone] = useState(profile.phone);
-  const orders = getOrders();
-  const lastOrder = orders.length > 0 ? orders[0] : null;
-  const [showLogin, setShowLogin] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(() => !!localStorage.getItem('authToken'));
-  const [editCylinders, setEditCylinders] = useState(profile.cylinders_count || '');
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
 // Type for other addresses (should match Order.tsx)
 type OtherAddress = {
@@ -26,6 +13,18 @@ type OtherAddress = {
   lat: string;
   lng: string;
 };
+
+const Profile: React.FC = () => {
+  const { theme } = useTheme();
+  const [profile, setProfile] = useState(getProfile());
+  const [editing, setEditing] = useState(false);
+  const [editName, setEditName] = useState(profile.name);
+  const [editPhone, setEditPhone] = useState(profile.phone);
+  const [showLogin, setShowLogin] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(() => !!localStorage.getItem('authToken'));
+  const [editCylinders, setEditCylinders] = useState(profile.cylinders_count || '');
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+
 
   // Request notification permission on mount if native
   useEffect(() => {
@@ -123,7 +122,7 @@ type OtherAddress = {
               saveProfile(updated);
               setProfile(updated);
               setEditing(false);
-            } catch (err) {
+            } catch {
               alert('Could not update profile in cloud. Please try again.');
             }
           }} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -323,14 +322,14 @@ type OtherAddress = {
 export default Profile;
 
 // --- OtherAddresses component ---
-function getOtherAddresses() {
+function getOtherAddresses(): OtherAddress[] {
   try {
     return JSON.parse(localStorage.getItem('tapgas_other_addresses') || '[]');
   } catch {
     return [];
   }
 }
-function saveOtherAddresses(addresses: any[]) {
+function saveOtherAddresses(addresses: OtherAddress[]) {
   localStorage.setItem('tapgas_other_addresses', JSON.stringify(addresses));
 }
 
