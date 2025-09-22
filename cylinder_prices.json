@@ -1,0 +1,26 @@
+{
+  "refill": {
+    "3kg": 45,
+    "6kg": 90,
+    "12.5kg": 180,
+    "other": 0
+  },
+  "buy": {
+    "3kg": {
+      "empty": 120,
+      "filled": 165
+    },
+    "6kg": {
+      "empty": 200,
+      "filled": 290
+    },
+    "12.5kg": {
+      "empty": 350,
+      "filled": 530
+    },
+    "other": {
+      "empty": 0,
+      "filled": 0
+    }
+  }
+}
