@@ -1,4 +1,64 @@
-import React, { useState } from 'react';
+// --- DELIVERY FEE CONFIGURATION ---
+// Adjust these variables to change the delivery fee logic.
+// You can later move these to a config file or .env if needed.
+
+// --- DELIVERY FEE CONFIGURATION ---
+// 0-20km: ₵5 flat. Every km above 20km: ₵0.7 per km extra (rounded up to next cedi if decimal)
+const DELIVERY_BASE_FEE = 5; // Flat fee for 0-20km (in cedis)
+const DELIVERY_PER_KM_RATE = 0.7; // Per-km rate above 20km (in cedis)
+
+
+/**
+ * Calculates the delivery fee based on distance (in kilometers).
+ * 0-20km: ₵5 flat. Every km above 20km: ₵0.7 per km extra (rounded up to next cedi if decimal)
+ * @param {number} distanceKm - The straight-line distance in kilometers.
+ * @returns {number} - The calculated delivery fee in cedis (₵)
+ */
+function calculateDeliveryFee(distanceKm: number): number {
+  if (distanceKm <= 20) {
+    return DELIVERY_BASE_FEE;
+  } else {
+    const extraKm = distanceKm - 20;
+    const fee = DELIVERY_BASE_FEE + (DELIVERY_PER_KM_RATE * extraKm);
+    // Always round up to the next cedi if decimal
+    return Math.ceil(fee);
+  }
+}
+import React, { useState, useEffect } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, Polyline, CircleMarker } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+// LPG Station type
+type LpgStation = {
+  name: string;
+  lat: number;
+  lng: number;
+};
+
+// Custom hook to fetch LPG stations from JSON
+function useLpgStations() {
+  const [stations, setStations] = useState<LpgStation[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch('/lpg_stations.json')
+      .then(res => {
+        if (!res.ok) throw new Error('Failed to load LPG stations');
+        return res.json();
+      })
+      .then(data => {
+        setStations(Array.isArray(data) ? data : []);
+        setLoading(false);
+      })
+      .catch(err => {
+        setError('Could not load LPG station data');
+        setLoading(false);
+      });
+  }, []);
+
+  return { stations, loading, error };
+}
 // Type for other addresses (should match Profile.tsx)
 type OtherAddress = {
   name: string;
@@ -34,6 +94,20 @@ const paymentOptions = [
 ];
 
 const Order: React.FC = () => {
+  // Delivery fee and distance state (must be defined here for use in render)
+  const [deliveryFee, setDeliveryFee] = useState<number>(DELIVERY_BASE_FEE);
+  const [distanceToStation, setDistanceToStation] = useState<number | null>(null);
+
+  // Update delivery fee when distance changes
+  useEffect(() => {
+    if (distanceToStation !== null && !isNaN(distanceToStation)) {
+      setDeliveryFee(calculateDeliveryFee(distanceToStation));
+    } else {
+      setDeliveryFee(DELIVERY_BASE_FEE);
+    }
+  }, [distanceToStation]);
+  // Load LPG stations
+  const { stations: lpgStations, loading: stationsLoading, error: stationsError } = useLpgStations();
   // Referral code input state
   const [referralCode, setReferralCode] = useState('');
   // Track if user has already been referred (from profile/localStorage)
@@ -478,7 +552,32 @@ const Order: React.FC = () => {
         </div>
       )}
 
-      {/* Main order form UI */}
+      {/* LPG Stations Map */}
+      <div style={{ maxWidth: 420, margin: '0 auto 1.5rem auto', background: theme === 'dark' ? '#f1f5f9' : '#f8fafc', borderRadius: '1rem', padding: '1rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+        <div style={{ fontWeight: 700, fontSize: '1.1rem', marginBottom: '0.7rem', color: '#0f172a' }}>
+          Nearby LPG Stations
+        </div>
+        {stationsLoading && <div style={{ color: '#64748b' }}>Loading stations...</div>}
+        {stationsError && <div style={{ color: '#ef4444' }}>{stationsError}</div>}
+        {!stationsLoading && !stationsError && lpgStations.length === 0 && (
+          <div style={{ color: '#64748b' }}>No stations found.</div>
+        )}
+        {!stationsLoading && !stationsError && lpgStations.length > 0 && (
+          <MapContainer center={[5.65, -0.15]} zoom={11} style={{ height: 320, width: '100%', borderRadius: '1rem', margin: '0 auto' }} scrollWheelZoom={false}>
+            <TileLayer
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            />
+            {lpgStations.map((station, idx) => (
+              <Marker key={idx} position={[station.lat, station.lng]}>
+                <Popup>
+                  <b>{station.name}</b><br />Lat: {station.lat}, Lng: {station.lng}
+                </Popup>
+              </Marker>
+            ))}
+          </MapContainer>
+        )}
+      </div>
       <div style={{
         maxWidth: '420px',
         background: theme === 'dark' ? '#23272f' : '#fff',
@@ -807,24 +906,91 @@ const Order: React.FC = () => {
                 )}
               </div>
             )}
-            {/* Satellite map view if address is coordinates (Google Maps) */}
-            {/^Lat: (-?\d+\.\d+), Lng: (-?\d+\.\d+)$/.test(address) && (() => {
+            {/* Leaflet map view for selected delivery location and LPG stations */}
+            {(() => {
+              // Try to get coordinates from address string ("Lat: x, Lng: y")
+              let deliveryLatLng: [number, number] | null = null;
               const match = address.match(/^Lat: (-?\d+\.\d+), Lng: (-?\d+\.\d+)$/);
-              if (!match) return null;
-              const lat = match[1];
-              const lng = match[2];
-              // Google Maps embed with marker
-              const mapUrl = `https://www.google.com/maps?q=${lat},${lng}&t=k&z=16&output=embed`;
+              if (match) {
+                const lat = parseFloat(match[1]);
+                const lng = parseFloat(match[2]);
+                if (!isNaN(lat) && !isNaN(lng)) {
+                  deliveryLatLng = [lat, lng];
+                }
+              }
+              if (!deliveryLatLng && lpgStations.length === 0) return null;
+              // Find nearest station to delivery location
+              let nearestStation = null;
+              let minDist = Infinity;
+              if (deliveryLatLng && lpgStations.length > 0) {
+                for (const station of lpgStations) {
+                  const dLat = (station.lat - deliveryLatLng[0]) * Math.PI / 180;
+                  const dLng = (station.lng - deliveryLatLng[1]) * Math.PI / 180;
+                  const a = Math.sin(dLat/2) ** 2 + Math.cos(deliveryLatLng[0]*Math.PI/180) * Math.cos(station.lat*Math.PI/180) * Math.sin(dLng/2) ** 2;
+                  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+                  const dist = 6371 * c; // km
+                  if (dist < minDist) {
+                    minDist = dist;
+                    nearestStation = station;
+                  }
+                }
+              }
+              // Center map on delivery location if available, else Las Colinas, Texas, USA
+              const mapCenter = deliveryLatLng || [32.88, -96.95];
               return (
                 <div style={{ marginTop: '1rem', borderRadius: '1rem', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
-                  <iframe
-                    title="Location Map"
-                    src={mapUrl}
-                    width="100%"
-                    height="220"
-                    style={{ border: 0 }}
-                    allowFullScreen
-                  />
+                  <MapContainer center={mapCenter} zoom={deliveryLatLng ? 13 : 11} style={{ height: 220, width: '100%' }} scrollWheelZoom={false}>
+                    <TileLayer
+                      attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    />
+                    {/* Delivery location marker */}
+                    {deliveryLatLng && (
+                      <CircleMarker center={deliveryLatLng} radius={10} pathOptions={{ color: '#22c55e', fillColor: '#22c55e', fillOpacity: 0.7 }}>
+                        <Popup>Pickup & Delivery Location </Popup>
+                      </CircleMarker>
+                    )}
+                    {/* LPG station markers */}
+                    {/* Render nearest station marker with green icon */}
+                    {nearestStation && (
+                      <Marker
+                        key={`nearest-${nearestStation.lat},${nearestStation.lng}`}
+                        position={[nearestStation.lat, nearestStation.lng]}
+                        icon={L.icon({
+                          iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+                          iconSize: [25, 41],
+                          iconAnchor: [12, 41],
+                          popupAnchor: [1, -34],
+                          shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.3.4/images/marker-shadow.png',
+                          shadowSize: [41, 41]
+                        })}
+                      >
+                        <Popup>
+                          <b>{nearestStation.name}</b><br />Lat: {nearestStation.lat}, Lng: {nearestStation.lng}
+                          {deliveryLatLng && (
+                            <><br /><span style={{ color: '#22c55e', fontWeight: 700 }}>Nearest Station ({minDist.toFixed(2)} km)</span></>
+                          )}
+                        </Popup>
+                      </Marker>
+                    )}
+                    {/* Render all other stations with default icon */}
+                    {lpgStations.filter(station => !(
+                      nearestStation && station.lat === nearestStation.lat && station.lng === nearestStation.lng
+                    )).map((station) => (
+                      <Marker
+                        key={`normal-${station.lat},${station.lng}`}
+                        position={[station.lat, station.lng]}
+                      >
+                        <Popup>
+                          <b>{station.name}</b><br />Lat: {station.lat}, Lng: {station.lng}
+                        </Popup>
+                      </Marker>
+                    ))}
+                    {/* Draw line to nearest station */}
+                    {deliveryLatLng && nearestStation && (
+                      <Polyline positions={[deliveryLatLng, [nearestStation.lat, nearestStation.lng]]} pathOptions={{ color: '#22c55e', weight: 4, dashArray: '6 8' }} />
+                    )}
+                  </MapContainer>
                 </div>
               );
             })()}
@@ -861,12 +1027,27 @@ const Order: React.FC = () => {
               {paymentOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
             </select>
           </div>
+          {/* Total Price (Delivery Fee only for now) */}
+          <div style={{
+            marginTop: '1.5rem',
+            marginBottom: '0.5rem',
+            fontWeight: 700,
+            fontSize: '1.15rem',
+            color: theme === 'dark' ? '#fbbf24' : '#0f172a',
+            textAlign: 'center',
+            background: theme === 'dark' ? '#23272f' : '#f1f5f9',
+            borderRadius: '0.7rem',
+            padding: '0.7rem 0',
+            boxShadow: '0 1px 4px rgba(0,0,0,0.04)'
+          }}>
+            Total Price: {deliveryFee !== null ? `₵${deliveryFee.toFixed(2)}` : 'N/A'}
+          </div>
           <button
             type="submit"
             style={{
               background: theme === 'dark' ? '#fbbf24' : '#38bdf8',
               color: theme === 'dark' ? '#0f172a' : '#fff',
-              border: 'none', borderRadius: '2rem', padding: '0.9rem 2.5rem', fontSize: '1.1rem', fontWeight: 700, boxShadow: '0 2px 8px rgba(0,0,0,0.08)', cursor: isLoggedIn ? 'pointer' : 'not-allowed', marginTop: '1.2rem', transition: 'background 0.2s', opacity: isLoggedIn ? 1 : 0.7
+              border: 'none', borderRadius: '2rem', padding: '0.9rem 2.5rem', fontSize: '1.1rem', fontWeight: 700, boxShadow: '0 2px 8px rgba(0,0,0,0.08)', cursor: isLoggedIn ? 'pointer' : 'not-allowed', marginTop: '0.5rem', transition: 'background 0.2s', opacity: isLoggedIn ? 1 : 0.7
             }}
             disabled={
               !isLoggedIn ||
