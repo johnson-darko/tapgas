@@ -51,7 +51,7 @@ function useLpgStations() {
         setStations(Array.isArray(data) ? data : []);
         setLoading(false);
       })
-      .catch(err => {
+      .catch(() => {
         setError('Could not load LPG station data');
         setLoading(false);
       });
@@ -97,11 +97,11 @@ const paymentOptions = [
 const Order: React.FC = () => {
   // Delivery fee and distance state (must be defined here for use in render)
   const [deliveryFee, setDeliveryFee] = useState<number>(DELIVERY_BASE_FEE);
-  const [distanceToStation, setDistanceToStation] = useState<number | null>(null);
+  const [distanceToStation] = useState<number | null>(null);
 
 
   // Cylinder prices state
-  const [cylinderPrices, setCylinderPrices] = useState<Record<string, any> | null>(null);
+  const [cylinderPrices, setCylinderPrices] = useState<Record<string, unknown> | null>(null);
 
   // Fetch cylinder prices on mount
   useEffect(() => {
@@ -128,7 +128,7 @@ const Order: React.FC = () => {
   }, [distanceToStation]);
 
   // Load LPG stations
-  const { stations: lpgStations, loading: stationsLoading, error: stationsError } = useLpgStations();
+  const { stations: lpgStations } = useLpgStations();
   // Referral code input state
   const [referralCode, setReferralCode] = useState('');
   // Track if user has already been referred (from profile/localStorage)
@@ -275,9 +275,9 @@ const Order: React.FC = () => {
     const getCylinderUnitPrice = (cyl: CylinderOrder): number => {
       if (!cylinderPrices) return 0;
       if (orderType === 'gas') {
-        return cylinderPrices.refill?.[cyl.type] || 0;
+        return (cylinderPrices.refill as Record<string, number> | undefined)?.[cyl.type] || 0;
       } else {
-        return cylinderPrices.buy?.[cyl.type]?.[cyl.filled || 'filled'] || 0;
+        return ((cylinderPrices.buy as Record<string, Record<string, number>> | undefined)?.[cyl.type]?.[cyl.filled || 'filled']) || 0;
       }
     };
     const breakdownMap = new Map<string, { qty: number, price: number, label: string }>();
@@ -337,6 +337,22 @@ const Order: React.FC = () => {
       serviceType: orderType === 'gas' ? (serviceType ?? '') : '',
       timeSlot: orderType === 'gas' ? (timeSlot ?? '') : '',
       deliveryWindow: orderType === 'gas' ? (deliveryWindow ?? '') : '',
+      // Set cylinderType field for backend and order card display
+      cylinderType: (() => {
+        if (cylinders.length > 1) {
+          return 'Many cylinder types, check info icon.';
+        } else if (cylinders.length === 1) {
+          // For 'gas', just the type; for 'cylinder', include filled/empty
+          const c = cylinders[0];
+          if (orderType === 'gas') {
+            return c.type;
+          } else {
+            return `${c.type} (${c.filled === 'filled' ? 'Filled' : 'Empty'})`;
+          }
+        } else {
+          return '';
+        }
+      })(),
     };
     // If referral code is entered and user not already referred, add to order
     if (referralCode && !alreadyReferred) {
@@ -993,7 +1009,7 @@ const Order: React.FC = () => {
                         const { latitude, longitude } = pos.coords;
                         setAddress(`Lat: ${latitude.toFixed(5)}, Lng: ${longitude.toFixed(5)}`);
                         setLocating(false);
-                      } catch (err) {
+                      } catch {
                         alert('Unable to get location. Please type your address.');
                         setLocating(false);
                       }
@@ -1186,10 +1202,10 @@ const Order: React.FC = () => {
             const getCylinderUnitPrice = (cyl: CylinderOrder): number => {
               if (!cylinderPrices) return 0;
               if (orderType === 'gas') {
-                return cylinderPrices.refill?.[cyl.type] || 0;
+                return (cylinderPrices.refill as Record<string, number> | undefined)?.[cyl.type] || 0;
               } else {
                 // Buy: must have filled/empty
-                return cylinderPrices.buy?.[cyl.type]?.[cyl.filled || 'filled'] || 0;
+                return ((cylinderPrices.buy as Record<string, Record<string, number>> | undefined)?.[cyl.type]?.[cyl.filled || 'filled']) || 0;
               }
             };
             const cylinderTotal = cylinders.reduce((sum, cyl) => sum + getCylinderUnitPrice(cyl) * cyl.quantity, 0);

@@ -76,19 +76,13 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, onCheckUpdate, showCheckUp
             />
           </div>
         )}
-        <div style={{ fontWeight: 800, fontSize: '1.2rem', color: theme === 'dark' ? '#38bdf8' : '#0f172a', letterSpacing: '-1px', marginBottom: '0.2rem' }}>
+        <div style={{ fontWeight: 800, fontSize: '1.2rem', color: theme === 'dark' ? '#38bdf8' : '#0f172a', letterSpacing: '-1px', marginBottom: '0.2rem', display: 'flex', alignItems: 'center', gap: 6 }}>
           <span role="img" aria-label="cylinder"></span> {order.cylinderType}
         </div>
         {/* Removed Customer name display as requested */}
-        <div style={{ fontSize: '0.98rem' }}>
-          {order.location && order.address.match(/^Lat: (-?\d+\.\d+), Lng: (-?\d+\.\d+)$/)
-            ? (
-              <>Address Coordinates: <span style={{ fontWeight: 600 }}>{order.location.lat},{order.location.lng}</span></>
-            )
-            : (
-              <>Address: <span style={{ fontWeight: 600 }}>{order.address}</span></>
-            )}
-        </div>
+        {/* <div style={{ fontSize: '0.98rem' }}>
+          Address: <span style={{ fontWeight: 600 }}>{order.address}</span>
+        </div>*/}
         <div style={{ fontSize: '0.98rem' }}>Date: <span style={{ fontWeight: 600 }}>{order.date}</span></div>
         <div style={{ fontSize: '0.98rem' }}>
           Amount Paid: <span style={{ fontWeight: 700, color: theme === 'dark' ? '#fbbf24' : '#22c55e' }}>Not yet</span>
@@ -99,7 +93,7 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, onCheckUpdate, showCheckUp
             title="Order information"
             style={{ cursor: 'pointer', fontSize: '1.1em', color: theme === 'dark' ? '#fbbf24' : '#0f172a', verticalAlign: 'middle' }}
             onClick={() => setShowInfo(true)}
-          >ℹ️</span>
+          >Infoℹ️</span>
         </div>
         {showInfo && (
           <div
@@ -132,18 +126,23 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, onCheckUpdate, showCheckUp
               onClick={e => e.stopPropagation()}
             >
               <div style={{ fontWeight: 700, fontSize: '1.15rem', marginBottom: '1.2rem', textAlign: 'center' }}>Order Details</div>
-              {/* Only show these for LPG Gas Refill */}
-              {order.cylinderType && !order.cylinderType.toLowerCase().includes('cylinder') && (
-                <>
-                  <div><b>Service Type:</b> {order.serviceType === 'kiosk' ? 'Drop off at Kiosk' : order.serviceType === 'pickup' ? 'Pickup from Home' : '-'}</div>
-                  <div><b>Time Slot:</b> {order.timeSlot === 'morning' ? 'Morning (4:30–9:00 AM)' : order.timeSlot === 'evening' ? 'Evening (4:30–8:00 PM)' : '-'}</div>
-                  <div><b>Delivery Window:</b> {
-                    order.deliveryWindow === 'sameDayEvening' ? 'Same Day Evening (4:30–7:00 PM)' :
-                    order.deliveryWindow === 'nextMorning' ? 'Next Morning (5:00–9:00 AM)' :
-                    order.deliveryWindow === 'nextEvening' ? 'Next Evening (4:30–8:00 PM)' : '-'
-                  }</div>
-                </>
+              {/* Only show these for LPG Gas Refill (not buy cylinder) */}
+              {order.cylinderType &&
+                order.cylinderType !== 'Many cylinder types, check info icon.' &&
+                !/\(Filled\)|\(Empty\)/i.test(order.cylinderType) &&
+                !order.cylinderType.toLowerCase().includes('cylinder') && (
+                  <>
+                    <div><b>Service Type:</b> {order.serviceType === 'kiosk' ? 'Drop off at Kiosk' : order.serviceType === 'pickup' ? 'Pickup from Home' : '-'}</div>
+                    <div><b>Time Slot:</b> {order.timeSlot === 'morning' ? 'Morning (4:30–9:00 AM)' : order.timeSlot === 'evening' ? 'Evening (4:30–8:00 PM)' : '-'}</div>
+                    <div><b>Delivery Window:</b> {
+                      order.deliveryWindow === 'sameDayEvening' ? 'Same Day Evening (4:30–7:00 PM)' :
+                      order.deliveryWindow === 'nextMorning' ? 'Next Morning (5:00–9:00 AM)' :
+                      order.deliveryWindow === 'nextEvening' ? 'Next Evening (4:30–8:00 PM)' : '-'
+                    }</div>
+                  </>
               )}
+              {/* Hide for buy cylinder orders (show nothing) */}
+              {order.cylinderType && order.cylinderType.toLowerCase().includes('cylinder') && null}
               <div style={{ marginTop: '1.2rem', fontSize: '1rem' }}>
                 <b>Directions / Notes:</b><br />
                 <span style={{ color: theme === 'dark' ? '#fbbf24' : '#0f172a' }}>{order.notes ? order.notes : 'None provided'}</span>
