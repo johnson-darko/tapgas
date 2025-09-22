@@ -1,3 +1,5 @@
+import Privacy from './pages/Privacy';
+
 import React, { useState, useEffect } from 'react';
 import CompleteProfileModal from './components/CompleteProfileModal';
 import { getProfile } from './utils/profileStorage';
@@ -52,6 +54,7 @@ import DriverTrackOrder from './pages/DriverTrackOrder';
 import DriverHistory from './pages/DriverHistory';
 import DriverRoute from './pages/DriverRoute';
 import Testing from './pages/testing';
+import AccountDeletion from './pages/AccountDeletion';
 
 import { useTheme } from './useTheme';
 
@@ -161,6 +164,8 @@ const App: React.FC = () => {
               <Route path="/driver-track" element={<DriverTrackOrder />} />
               <Route path="/driver-history" element={<DriverHistory />} />
               <Route path="/driver-route" element={<DriverRoute />} />
+              <Route path="/account-deletion" element={<AccountDeletion />} />
+              <Route path="/privacy" element={<Privacy />} />
               <Route path="/login" element={<Login />} />
               <Route path="/admin-assign-orders" element={<AdminAssignOrders />} />
               <Route path="/admin-drivers" element={<AdminDrivers />} />

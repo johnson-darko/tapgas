@@ -501,6 +501,38 @@ const Home: React.FC = () => {
         </div>
         <div style={{ marginTop: '2rem', fontSize: '0.98rem', color: theme === 'dark' ? '#38bdf8' : '#64748b', fontWeight: 500 }}>
           <span>Fast•Secure•Reliable•</span>
+          <div style={{ marginTop: '1.2rem', display: 'flex', gap: '1.2rem', justifyContent: 'center' }}>
+            <a
+              href="/#/privacy"
+              style={{
+                background: '#38bdf8',
+                color: '#fff',
+                borderRadius: '1rem',
+                padding: '0.6rem 1.5rem',
+                fontWeight: 600,
+                fontSize: '1rem',
+                textDecoration: 'none',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+              }}
+            >
+              Privacy
+            </a>
+            <a
+              href="/#/account-deletion"
+              style={{
+                background: '#ef4444',
+                color: '#fff',
+                borderRadius: '1rem',
+                padding: '0.6rem 1.5rem',
+                fontWeight: 600,
+                fontSize: '1rem',
+                textDecoration: 'none',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+              }}
+            >
+              Account Delete
+            </a>
+          </div>
         </div>
       </div>
     </div>

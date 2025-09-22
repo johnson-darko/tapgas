@@ -17,6 +17,7 @@ const Profile: React.FC = () => {
   const [showLogin, setShowLogin] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(() => !!localStorage.getItem('authToken'));
   const [editCylinders, setEditCylinders] = useState(profile.cylinders_count || '');
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   let addressDisplay = 'No address yet';
   if (lastOrder) {
     addressDisplay = lastOrder.location && lastOrder.address.match(/^Lat: (-?\d+\.\d+), Lng: (-?\d+\.\d+)$/)
@@ -199,30 +200,118 @@ const Profile: React.FC = () => {
       <div style={{ margin: '1.5rem auto 2rem auto', maxWidth: 400 }}>
         <OtherAddresses />
       </div>
-                      {isLoggedIn && (
-                  <button
-                    onClick={() => {
-                      localStorage.removeItem('authToken');
-                      localStorage.removeItem('tapgas_profile');
-                      window.location.href = '/';
-                    }}
-                    style={{
-                      background: '#ef4444',
-                      color: '#fff',
-                      border: 'none',
-                      borderRadius: '2rem',
-                      padding: '0.7rem 2rem',
-                      fontSize: '1rem',
-                      fontWeight: 600,
-                      boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-                      cursor: 'pointer',
-                      margin: '0.5rem auto 1.2rem auto',
-                      display: 'block',
-                    }}
-                  >
-                    Logout
-                  </button>
-                )}
+      {isLoggedIn && (
+        <>
+          <button
+            onClick={() => {
+              localStorage.removeItem('authToken');
+              localStorage.removeItem('tapgas_profile');
+              window.location.href = '/';
+            }}
+            style={{
+              background: '#ef4444',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '2rem',
+              padding: '0.7rem 2rem',
+              fontSize: '1rem',
+              fontWeight: 600,
+              boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+              cursor: 'pointer',
+              margin: '0.5rem auto 1.2rem auto',
+              display: 'block',
+            }}
+          >
+            Logout
+          </button>
+
+          {/* Request Account Deletion Button */}
+          <button
+            onClick={() => setShowDeleteModal(true)}
+            style={{
+              background: '#fbbf24',
+              color: '#0f172a',
+              border: 'none',
+              borderRadius: '2rem',
+              padding: '0.7rem 2rem',
+              fontSize: '1rem',
+              fontWeight: 600,
+              boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+              cursor: 'pointer',
+              margin: '0.5rem auto 1.2rem auto',
+              display: 'block',
+            }}
+          >
+            Request Account Deletion
+          </button>
+
+          {/* Modal for account deletion request */}
+          {showDeleteModal && (
+            <div style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              width: '100vw',
+              height: '100vh',
+              background: 'rgba(0,0,0,0.35)',
+              zIndex: 10000,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}>
+              <div style={{
+                background: '#fff',
+                borderRadius: '1rem',
+                padding: '2rem',
+                boxShadow: '0 2px 16px rgba(0,0,0,0.15)',
+                minWidth: 260,
+                textAlign: 'center',
+              }}>
+                <div style={{ fontWeight: 700, fontSize: '1.1rem', color: '#ef4444', marginBottom: '1.2rem' }}>
+                  Account Deletion Request
+                </div>
+                <div style={{ fontSize: '1rem', marginBottom: '1.5rem', color: '#0f172a' }}>
+                  Your request to delete your account and associated data will be processed within <b>30 business days</b>.<br /><br />
+                  For immediate action, please use the email address below to request account deletion:<br />
+                  <span style={{ display: 'inline-block', background: '#fbbf24', color: '#0f172a', fontWeight: 700, padding: '0.5rem 1.2rem', borderRadius: '0.7rem', margin: '0.7rem 0' }}>johnsondarko365@gmail.com</span>
+                  <br />
+                  <a href="/#/account-deletion" style={{ color: '#38bdf8', textDecoration: 'underline', fontWeight: 600 }}>Read more about account deletion</a>
+                </div>
+                <button
+                  style={{
+                    background: '#e5e7eb',
+                    color: '#334155',
+                    border: 'none',
+                    borderRadius: '0.7rem',
+                    padding: '0.5rem 1.2rem',
+                    fontWeight: 600,
+                    fontSize: '1rem',
+                    cursor: 'pointer',
+                  }}
+                  onClick={() => setShowDeleteModal(false)}
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Permanent link for Google Play Store policy */}
+          <div style={{ margin: '2rem auto 0 auto', maxWidth: 400, textAlign: 'center' }}>
+            <a
+              href="/#/account-deletion"
+              style={{
+                color: '#ef4444',
+                fontWeight: 700,
+                textDecoration: 'underline',
+                fontSize: '1.05rem',
+              }}
+            >
+              Read more about account/data deletion
+            </a>
+          </div>
+        </>
+      )}
     </div>
     
   );
