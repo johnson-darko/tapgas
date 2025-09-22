@@ -43,6 +43,7 @@ import { useNavigate } from 'react-router-dom';
 
 const AdminAssignOrders: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([]);
+  const [filterDate, setFilterDate] = useState<string>('');
   const [drivers, setDrivers] = useState<string[]>([]);
   const [assigningCluster, setAssigningCluster] = useState<number | null>(null);
   const [selectedDriver, setSelectedDriver] = useState<string>('');
@@ -68,7 +69,38 @@ const AdminAssignOrders: React.FC = () => {
     setDrivers(getDrivers());
   }, []);
 
+  // Helper: parse date string to YYYY-MM-DD for comparison
+  function normalizeDate(dateStr: string | undefined): string | null {
+    if (!dateStr) return null;
+    // Try YYYY-MM-DD
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
+    // Try MMM DD, YYYY (e.g., Sep 22, 2025)
+    const m = dateStr.match(/^(\w{3,}) (\d{1,2}), (\d{4})$/);
+    if (m) {
+      const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      const monthIdx = months.findIndex(mon => mon.toLowerCase() === m[1].slice(0,3).toLowerCase());
+      if (monthIdx >= 0) {
+        const mm = String(monthIdx + 1).padStart(2, '0');
+        const dd = String(Number(m[2])).padStart(2, '0');
+        return `${m[3]}-${mm}-${dd}`;
+      }
+    }
+    // Try Date.parse fallback
+    const d = new Date(dateStr);
+    if (!isNaN(d.getTime())) {
+      return d.toISOString().slice(0,10);
+    }
+    return null;
+  }
+
+  // Cluster all undelivered orders with location
   const clusters: OrderCluster[] = clusterOrders(orders);
+  // If filterDate is set, filter clusters if ANY order in the cluster matches the date
+  const filteredClusters = filterDate
+    ? clusters.filter(cluster =>
+        cluster.some(order => normalizeDate(order.date) === normalizeDate(filterDate))
+      )
+    : clusters;
 
   const handleAssign = (clusterIdx: number) => {
     setAssigningCluster(clusterIdx);
@@ -112,7 +144,7 @@ const AdminAssignOrders: React.FC = () => {
 
   return (
     <div style={{ maxWidth: 900, margin: '2rem auto', padding: '2rem', background: '#fff', borderRadius: '1.2rem', boxShadow: '0 4px 24px rgba(0,0,0,0.08)' }}>
-      <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem' }}>
+      <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem', alignItems: 'center', flexWrap: 'wrap' }}>
         <button
           onClick={() => setView('assign')}
           style={{
@@ -126,6 +158,39 @@ const AdminAssignOrders: React.FC = () => {
             fontSize: '1rem',
           }}
         >Assign Orders</button>
+        {/* Date filter */}
+        <label style={{ fontWeight: 600, fontSize: '1rem', marginLeft: 12 }}>
+          Filter by Date:
+          <input
+            type="date"
+            value={filterDate}
+            onChange={e => setFilterDate(e.target.value)}
+            style={{
+              marginLeft: 8,
+              padding: '0.4rem 0.8rem',
+              borderRadius: '0.7rem',
+              border: '1px solid #e5e7eb',
+              fontSize: '1rem',
+            }}
+          />
+          {filterDate && (
+            <button
+              type="button"
+              onClick={() => setFilterDate('')}
+              style={{
+                marginLeft: 8,
+                background: '#e5e7eb',
+                color: '#0f172a',
+                border: 'none',
+                borderRadius: '0.7rem',
+                padding: '0.4rem 1rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                fontSize: '1rem',
+              }}
+            >Clear</button>
+          )}
+        </label>
         <button
           onClick={() => navigate('/admin-drivers')}
           style={{
@@ -141,10 +206,10 @@ const AdminAssignOrders: React.FC = () => {
         >Assign Regions/Zones</button>
       </div>
       <h2 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '2rem' }}>Assign Orders to Drivers</h2>
-      {clusters.length === 0 ? (
+      {filteredClusters.length === 0 ? (
         <div>No undelivered orders with location found.</div>
       ) : (
-        clusters.map((cluster: OrderCluster, idx: number) => {
+        filteredClusters.map((cluster: OrderCluster, idx: number) => {
           // Pick a color for this cluster
           const clusterColors = [
             '#38bdf8', // blue
@@ -177,6 +242,17 @@ const AdminAssignOrders: React.FC = () => {
                     }}
                     title="How was this cluster formed?"
                   >ℹ️</span>
+                  {/* Buy Cylinder warning if present */}
+                  {(() => {
+                    const buyCylinderOrders = cluster.filter(
+                      o => /(\(Filled\)|\(Empty\)|cylinder)/i.test(o.cylinderType || '')
+                    );
+                    return buyCylinderOrders.length > 0 ? (
+                      <span style={{ color: '#eab308', fontSize: '0.97em', marginLeft: 10 }}>
+                        ⚠️ Buy Cylinder order{buyCylinderOrders.length > 1 ? 's' : ''} ({buyCylinderOrders.length}): {buyCylinderOrders.map(o => o.orderId).join(', ')}
+                      </span>
+                    ) : null;
+                  })()}
               {/* Cluster info modal */}
               {showClusterInfo.open && showClusterInfo.idx === idx && (
                 <div style={{

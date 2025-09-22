@@ -174,10 +174,28 @@ const Order: React.FC = () => {
   // New: Service type for LPG refill
   const [serviceType, setServiceType] = useState<'kiosk' | 'pickup' | null>(null);
   const [timeSlot, setTimeSlot] = useState<'morning' | 'evening' | null>(null);
+  // For Buy Cylinder, default to 3 days from today; for refill, can be today
   const [selectedDate, setSelectedDate] = useState<string>(() => {
     const now = new Date();
     return now.toISOString().slice(0, 10);
   });
+  // Track if user has clicked a delivery window option (for checkmark)
+  const [deliveryWindowClicked, setDeliveryWindowClicked] = useState(false);
+
+  // When orderType changes, set default date: today for gas, 3 days from now for cylinder
+  useEffect(() => {
+    if (orderType === 'cylinder') {
+      const d = new Date();
+      d.setDate(d.getDate() + 3);
+      setSelectedDate(d.toISOString().slice(0, 10));
+      setTimeSlot('evening');
+      setDeliveryWindow('sameDayEvening');
+      setDeliveryWindowClicked(false);
+    } else {
+      setSelectedDate(new Date().toISOString().slice(0, 10));
+      setDeliveryWindowClicked(false);
+    }
+  }, [orderType]);
 
   // Helper: parse time window string (e.g. "4:30–9:00 AM") to [start, end] Date objects for today
   function parseTimeWindowStr(windowStr: string): [Date, Date] | [null, null] {
@@ -785,6 +803,96 @@ const Order: React.FC = () => {
             )}
           </div>
 
+          {/* Delivery scheduling card for Buy Gas Cylinder */}
+          {orderType === 'cylinder' && (
+            <div style={{
+              margin: '0 0 1.2rem 0',
+              padding: '1.2rem',
+              background: theme === 'dark' ? '#23272f' : '#f8fafc',
+              borderRadius: '1.2rem',
+              boxShadow: theme === 'dark' ? '0 2px 8px #18181b' : '0 2px 8px #e5e7eb',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '1.1rem',
+            }}>
+              <h3 style={{ fontSize: '0.79rem', fontWeight: 700, marginBottom: '0.5rem', color: theme === 'dark' ? '#fbbf24' : '#0f172a', letterSpacing: '0.01em' }}>
+                Delivery to My House
+              </h3>
+              <div style={{ color: '#64748b', fontSize: '0.93rem', marginBottom: '0.5rem' }}>
+                Select your preferred delivery date and window. Delivery for new cylinders earliest date is 3 days from today.
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.7rem' }}>
+                <label style={{ fontWeight: 600, fontSize: '0.95rem', color: theme === 'dark' ? '#fbbf24' : '#0f172a', marginBottom: '0.3rem' }}>
+                  Delivery Date
+                </label>
+                <input
+                  type="date"
+                  min={(() => {
+                    const minDate = new Date();
+                    minDate.setDate(minDate.getDate() + 3);
+                    return minDate.toISOString().slice(0, 10);
+                  })()}
+                  value={selectedDate}
+                  onChange={e => {
+                    setSelectedDate(e.target.value);
+                    setTimeSlot('evening');
+                    setDeliveryWindow('sameDayEvening');
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '0.49rem',
+                    borderRadius: '0.8rem',
+                    border: '1px solid #e5e7eb',
+                    marginTop: '0.1rem',
+                    fontSize: '0.7rem',
+                    background: '#000000ff',
+                    color: '#fff',
+                    // For dark mode calendar popover (not all browsers support)
+                    'caretColor': '#fff',
+                  }}
+                />
+                <div style={{ marginTop: '0.7rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  <span style={{ fontWeight: 600, fontSize: '0.95rem', color: theme === 'dark' ? '#fbbf24' : '#0f172a', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    Delivery Window
+                    <span
+                      style={{ cursor: 'pointer', fontSize: '1.1em' }}
+                      title="More info"
+                      onClick={() => setInfoModal({ open: true, text: 'Please you should be at home between the selected pick up time.' })}
+                    >ℹ️</span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTimeSlot('evening');
+                      setDeliveryWindow('sameDayEvening');
+                      setDeliveryWindowClicked(true);
+                    }}
+                    style={{
+                      background: '#fff',
+                      color: '#18181b',
+                      border: deliveryWindow === 'sameDayEvening' ? '2px solid #38bdf8' : '1px solid #cbd5e1',
+                      borderRadius: '1rem',
+                      padding: '0.49rem 1.05rem',
+                      fontWeight: 600,
+                      fontSize: '0.95rem',
+                      cursor: 'pointer',
+                      transition: 'background 0.2s',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.7rem',
+                      boxShadow: deliveryWindow === 'sameDayEvening' ? '0 2px 8px #38bdf8' : '0 1px 4px #e5e7eb',
+                    }}
+                  >
+                    Evening (4:30–8:00 PM)
+                    {deliveryWindow === 'sameDayEvening' && deliveryWindowClicked && (
+                      <span style={{ fontSize: '1.2em', color: '#38bdf8', marginLeft: 6 }}>✔</span>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Cylinder size and fill option fields removed; now handled by multi-cylinder UI above */}
           {/* New: Service type selection for LPG Gas Refill */}
           {orderType === 'gas' && (
@@ -895,7 +1003,7 @@ const Order: React.FC = () => {
             </div>
           )}
           <div>
-            <label style={{ fontWeight: 600, color: theme === 'dark' ? '#38bdf8' : '#334155', fontSize: '0.7rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+            <label style={{ fontWeight: 600, fontSize: '0.98rem', color: theme === 'dark' ? '#38bdf8' : '#334155', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
               Address
               <span
                 style={{ cursor: 'pointer' }}

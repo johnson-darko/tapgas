@@ -83,7 +83,15 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, onCheckUpdate, showCheckUp
         {/* <div style={{ fontSize: '0.98rem' }}>
           Address: <span style={{ fontWeight: 600 }}>{order.address}</span>
         </div>*/}
-        <div style={{ fontSize: '0.98rem' }}>Date: <span style={{ fontWeight: 600 }}>{order.date}</span></div>
+        <div style={{ fontSize: '0.98rem' }}>
+          {order.cylinderType &&
+            (/\(Filled\)|\(Empty\)|cylinder/i.test(order.cylinderType))
+            ? 'Delivery date: '
+            : 'Pick up date: '}
+          <span style={{ fontWeight: 600 }}>
+            {order.date ? new Date(order.date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : ''}
+          </span>
+        </div>
         <div style={{ fontSize: '0.98rem' }}>
           Amount Paid: <span style={{ fontWeight: 700, color: theme === 'dark' ? '#fbbf24' : '#22c55e' }}>Not yet</span>
         </div>

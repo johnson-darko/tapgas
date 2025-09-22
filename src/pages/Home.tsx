@@ -213,7 +213,7 @@ const Home: React.FC = () => {
         (!dropStart || !dropEnd || now < dropStart) &&
         (!delivStart || !delivEnd || now < delivStart)
       ) {
-        setCheckModalMsg('No updates available yet. Please check back during your drop-off/pickup or delivery window.');
+        setCheckModalMsg('No updates available yet. Please check back during your pickup or delivery window.');
         setShowCheckModal(true);
         return;
       }
