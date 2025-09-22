@@ -93,10 +93,30 @@ const paymentOptions = [
   { label: 'Mobile Money', value: 'momo' },
 ];
 
+
 const Order: React.FC = () => {
   // Delivery fee and distance state (must be defined here for use in render)
   const [deliveryFee, setDeliveryFee] = useState<number>(DELIVERY_BASE_FEE);
   const [distanceToStation, setDistanceToStation] = useState<number | null>(null);
+
+
+  // Cylinder prices state
+  const [cylinderPrices, setCylinderPrices] = useState<Record<string, any> | null>(null);
+
+  // Fetch cylinder prices on mount
+  useEffect(() => {
+    fetch('/cylinder_prices.json')
+      .then(res => {
+        if (!res.ok) throw new Error('Failed to load cylinder prices');
+        return res.json();
+      })
+      .then(data => {
+        setCylinderPrices(data);
+      })
+      .catch(() => {
+        // error handled silently
+      });
+  }, []);
 
   // Update delivery fee when distance changes
   useEffect(() => {
@@ -106,6 +126,7 @@ const Order: React.FC = () => {
       setDeliveryFee(DELIVERY_BASE_FEE);
     }
   }, [distanceToStation]);
+
   // Load LPG stations
   const { stations: lpgStations, loading: stationsLoading, error: stationsError } = useLpgStations();
   // Referral code input state
@@ -132,9 +153,24 @@ const Order: React.FC = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(() => !!localStorage.getItem('authToken'));
   const { theme } = useTheme();
   const [orderType, setOrderType] = useState<'gas' | 'cylinder'>('gas');
+
+  // Clear cylinders when orderType changes
+  useEffect(() => {
+    setCylinders([]);
+  }, [orderType]);
   // Info modal state
   const [infoModal, setInfoModal] = useState<{ open: boolean, text: string }>({ open: false, text: '' });
-  const [cylinder, setCylinder] = useState('');
+  // Multi-cylinder order state
+  type CylinderOrder = {
+    type: string;
+    quantity: number;
+    filled?: 'filled' | 'empty'; // Only for buy
+  };
+  const [cylinders, setCylinders] = useState<CylinderOrder[]>([]);
+  // Temp state for adding a cylinder
+  const [newCylinderType, setNewCylinderType] = useState('3kg');
+  const [newCylinderQty, setNewCylinderQty] = useState(1);
+  const [newCylinderFilled, setNewCylinderFilled] = useState<'filled' | 'empty'>('filled');
   // New: Service type for LPG refill
   const [serviceType, setServiceType] = useState<'kiosk' | 'pickup' | null>(null);
   const [timeSlot, setTimeSlot] = useState<'morning' | 'evening' | null>(null);
@@ -201,7 +237,7 @@ const Order: React.FC = () => {
   const [success, setSuccess] = useState(false);
   const navigate = (path: string) => { window.location.hash = path; };
   const [notes, setNotes] = useState('');
-  const [filled, setFilled] = useState<'filled' | 'empty'>('filled');
+  // Remove old single-cylinder filled state
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -212,6 +248,11 @@ const Order: React.FC = () => {
     // Frontend validation: block using own referral code
     if (referralCode && myReferralCode && referralCode.trim() === myReferralCode) {
       setShowOwnReferralModal(true);
+      return;
+    }
+    // Enforce at least one cylinder
+    if (cylinders.length === 0) {
+      alert('Please add at least one cylinder to your order.');
       return;
     }
     // Enforce required fields for LPG Gas Refill
@@ -230,11 +271,48 @@ const Order: React.FC = () => {
       }
     }
     setShowFillAnim(true);
-    // Build order object (no orderId)
+    // Build order summary string (matches UI breakdown)
+    const getCylinderUnitPrice = (cyl: CylinderOrder): number => {
+      if (!cylinderPrices) return 0;
+      if (orderType === 'gas') {
+        return cylinderPrices.refill?.[cyl.type] || 0;
+      } else {
+        return cylinderPrices.buy?.[cyl.type]?.[cyl.filled || 'filled'] || 0;
+      }
+    };
+    const breakdownMap = new Map<string, { qty: number, price: number, label: string }>();
+    cylinders.forEach(cyl => {
+      const unitPrice = getCylinderUnitPrice(cyl);
+      const key = orderType === 'gas' ? `${cyl.type}` : `${cyl.type}-${cyl.filled}`;
+      let label = '';
+      if (orderType === 'gas') {
+        label = `${cyl.type} Cylinders`;
+      } else {
+        label = `${cyl.type} (${cyl.filled === 'filled' ? 'Filled' : 'Empty'}) Cylinders`;
+      }
+      if (breakdownMap.has(key)) {
+        const entry = breakdownMap.get(key)!;
+        entry.qty += cyl.quantity;
+        entry.price += unitPrice * cyl.quantity;
+      } else {
+        breakdownMap.set(key, { qty: cyl.quantity, price: unitPrice * cyl.quantity, label });
+      }
+    });
+    const cylinderTotal = cylinders.reduce((sum, cyl) => sum + getCylinderUnitPrice(cyl) * cyl.quantity, 0);
+    const totalPrice = deliveryFee + cylinderTotal;
+    let summary = 'Order Summary:';
+    breakdownMap.forEach(entry => {
+      summary += `\n- ${entry.label} (${entry.qty}): ₵${entry.price.toFixed(2)}`;
+    });
+    summary += `\n- Delivery Fee: ₵${deliveryFee.toFixed(2)}`;
+    summary += `\n- Total: ₵${totalPrice.toFixed(2)}`;
+
+    // Append summary to notes for backend only
+    const notesWithSummary = notes ? notes + '\n\n' + summary : summary;
+
     const localUniqueCode = Math.floor(100000 + Math.random() * 900000);
-    // Use 'any' to allow dynamic fields like referralCode
-  // Use Partial<OrderType> to avoid 'any' and allow dynamic fields
-  const newOrder: Partial<OrderType> & { referralCode?: string } = {
+    // Use Partial<OrderType> to avoid 'any' and allow dynamic fields
+    const newOrder: Partial<OrderType> & { referralCode?: string, cylinders?: CylinderOrder[] } = {
       customerName: 'User', // Replace with actual user if available
       address,
       location: (() => {
@@ -249,12 +327,12 @@ const Order: React.FC = () => {
         }
         return undefined;
       })(),
-      cylinderType: orderType === 'gas' ? cylinder : `${cylinder} Cylinder (${filled})`,
+      cylinders,
       uniqueCode: localUniqueCode,
       status: 'pending',
       date: selectedDate,
       amountPaid: 0,
-      notes,
+      notes: notesWithSummary,
       payment,
       serviceType: orderType === 'gas' ? (serviceType ?? '') : '',
       timeSlot: orderType === 'gas' ? (timeSlot ?? '') : '',
@@ -360,6 +438,8 @@ const Order: React.FC = () => {
       position: 'relative',
       overflow: 'hidden',
     }}>
+
+      {/* ...existing code... */}
       {/* Modal for own referral code error */}
       {showOwnReferralModal && (
         <div style={{
@@ -552,32 +632,7 @@ const Order: React.FC = () => {
         </div>
       )}
 
-      {/* LPG Stations Map */}
-      <div style={{ maxWidth: 420, margin: '0 auto 1.5rem auto', background: theme === 'dark' ? '#f1f5f9' : '#f8fafc', borderRadius: '1rem', padding: '1rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
-        <div style={{ fontWeight: 700, fontSize: '1.1rem', marginBottom: '0.7rem', color: '#0f172a' }}>
-          Nearby LPG Stations
-        </div>
-        {stationsLoading && <div style={{ color: '#64748b' }}>Loading stations...</div>}
-        {stationsError && <div style={{ color: '#ef4444' }}>{stationsError}</div>}
-        {!stationsLoading && !stationsError && lpgStations.length === 0 && (
-          <div style={{ color: '#64748b' }}>No stations found.</div>
-        )}
-        {!stationsLoading && !stationsError && lpgStations.length > 0 && (
-          <MapContainer center={[5.65, -0.15]} zoom={11} style={{ height: 320, width: '100%', borderRadius: '1rem', margin: '0 auto' }} scrollWheelZoom={false}>
-            <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
-            {lpgStations.map((station, idx) => (
-              <Marker key={idx} position={[station.lat, station.lng]}>
-                <Popup>
-                  <b>{station.name}</b><br />Lat: {station.lat}, Lng: {station.lng}
-                </Popup>
-              </Marker>
-            ))}
-          </MapContainer>
-        )}
-      </div>
+      {/* Removed LPG Stations Map section as requested */}
       <div style={{
         maxWidth: '420px',
         background: theme === 'dark' ? '#23272f' : '#fff',
@@ -606,35 +661,125 @@ const Order: React.FC = () => {
             border: 'none', borderRadius: '1rem', padding: '0.49rem 1.05rem', fontWeight: 600, cursor: 'pointer', fontSize: '0.7rem', transition: 'background 0.2s',
           }}>Buy Gas Cylinder</button>
         </div>
-        <form onSubmit={handleSubmit} style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
 
-          <div>
-            <label style={{ fontWeight: 600, color: theme === 'dark' ? '#38bdf8' : '#334155', fontSize: '0.7rem' }}>Cylinder Size</label>
-            <select value={cylinder} onChange={e => setCylinder(e.target.value)} required style={{ width: '100%', padding: '0.49rem', borderRadius: '0.8rem', border: '1px solid #e5e7eb', marginTop: '0.35rem', fontSize: '0.7rem' }}>
-              <option value="" disabled>Select size</option>
-              {cylinderOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-            </select>
-          </div>
-          {orderType === 'cylinder' && (
-            <div>
-              <label style={{ fontWeight: 600, color: theme === 'dark' ? '#38bdf8' : '#334155', fontSize: '0.7rem' }}>Cylinder Fill Option</label>
-              <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem' }}>
-                <button type="button" onClick={() => setFilled('filled')} style={{
-                  background: filled === 'filled' ? (theme === 'dark' ? '#fbbf24' : '#38bdf8') : (theme === 'dark' ? '#23272f' : '#e5e7eb'),
-                  color: filled === 'filled' ? (theme === 'dark' ? '#0f172a' : '#fff') : (theme === 'dark' ? '#38bdf8' : '#334155'),
-                  border: 'none', borderRadius: '1rem', padding: '0.49rem 1.05rem', fontWeight: 600, cursor: 'pointer', fontSize: '0.7rem', transition: 'background 0.2s',
-                }}>Filled with Gas</button>
-                <button type="button" onClick={() => setFilled('empty')} style={{
-                  background: filled === 'empty' ? (theme === 'dark' ? '#fbbf24' : '#38bdf8') : (theme === 'dark' ? '#23272f' : '#e5e7eb'),
-                  color: filled === 'empty' ? (theme === 'dark' ? '#0f172a' : '#fff') : (theme === 'dark' ? '#38bdf8' : '#334155'),
-                  border: 'none', borderRadius: '1rem', padding: '0.49rem 1.05rem', fontWeight: 600, cursor: 'pointer', fontSize: '0.7rem', transition: 'background 0.2s',
-                }}>Empty Cylinder</button>
-              </div>
+        <form onSubmit={handleSubmit} style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
+          {/* --- Cylinder Selection UI (moved inside form) --- */}
+          <div style={{ margin: '0 0 1.2rem 0', padding: '1.2rem', background: theme === 'dark' ? '#23272f' : '#f8fafc', borderRadius: '1.2rem', boxShadow: theme === 'dark' ? '0 2px 8px #18181b' : '0 2px 8px #e5e7eb' }}>
+            <h3 style={{ fontSize: '0.79rem', fontWeight: 700, marginBottom: '0.5rem', color: theme === 'dark' ? '#fbbf24' : '#0f172a', letterSpacing: '0.01em' }}>
+              Add Cylinder(s) to Order
+            </h3>
+            <div style={{ color: '#64748b', fontSize: '0.93rem', marginBottom: '1.1rem' }}>
+              Select the cylinder type, quantity, and (if buying) whether you want it filled or empty. Click <b>Add</b> for each cylinder you want to include in this order.
             </div>
-          )}
+            <div style={{
+              display: 'flex',
+              gap: '0.7rem',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              background: theme === 'dark' ? '#18181b' : '#fff',
+              borderRadius: '0.8rem',
+              padding: '0.7rem 1rem',
+              boxShadow: theme === 'dark' ? '0 1px 4px #23272f' : '0 1px 4px #e5e7eb',
+              marginBottom: '1.1rem'
+            }}>
+              <div style={{ display: 'flex', flexDirection: 'column', minWidth: 110 }}>
+                <label style={{ fontSize: '0.75rem', color: '#64748b', marginBottom: 2 }}>Cylinder type</label>
+                <select value={newCylinderType} onChange={e => setNewCylinderType(e.target.value)} style={{ padding: '0.4rem', borderRadius: '0.5rem', border: '1px solid #e5e7eb', fontSize: '1rem' }}>
+                  {cylinderOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                </select>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', minWidth: 80 }}>
+                <label style={{ fontSize: '0.75rem', color: '#64748b', marginBottom: 2 }}>Quantity</label>
+                <select value={newCylinderQty} onChange={e => setNewCylinderQty(Number(e.target.value))} style={{ width: 70, padding: '0.4rem', borderRadius: '0.5rem', border: '1px solid #e5e7eb', fontSize: '1rem' }}>
+                  {Array.from({ length: 5 }, (_, i) => i + 1).map(num => (
+                    <option key={num} value={num}>{num}</option>
+                  ))}
+                </select>
+              </div>
+              {orderType === 'cylinder' && (
+                <div style={{ display: 'flex', flexDirection: 'column', minWidth: 100 }}>
+                  <label style={{ fontSize: '0.75rem', color: '#64748b', marginBottom: 2 }}>Filled / Empty</label>
+                  <select value={newCylinderFilled} onChange={e => setNewCylinderFilled(e.target.value as 'filled' | 'empty')} style={{ padding: '0.4rem', borderRadius: '0.5rem', border: '1px solid #e5e7eb', fontSize: '1rem' }}>
+                    <option value="filled">Filled</option>
+                    <option value="empty">Empty</option>
+                  </select>
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={() => {
+                  setCylinders([...cylinders, {
+                    type: newCylinderType,
+                    quantity: newCylinderQty,
+                    ...(orderType === 'cylinder' ? { filled: newCylinderFilled } : {})
+                  }]);
+                  setNewCylinderQty(1);
+                }}
+                style={{
+                  background: '#22c55e',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '0.5rem',
+                  padding: '0.5rem 1.5rem',
+                  fontWeight: 700,
+                  fontSize: '1rem',
+                  cursor: 'pointer',
+                  marginTop: 18
+                }}
+                title="Add cylinder to order"
+              >Add</button>
+            </div>
+            {/* List of added cylinders */}
+            {cylinders.length > 0 && (
+              <div style={{ marginTop: '0.7rem', display: 'flex', flexWrap: 'wrap', gap: '0.7rem' }}>
+                {cylinders.map((cyl, idx) => (
+                  <div key={idx} style={{
+                    background: theme === 'dark' ? '#18181b' : '#fff',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '0.7rem',
+                    padding: '0.6rem 1.1rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '1.1rem',
+                    minWidth: 170,
+                    boxShadow: theme === 'dark' ? '0 1px 4px #23272f' : '0 1px 4px #e5e7eb'
+                  }}>
+                    <span style={{ fontWeight: 600, fontSize: '1.05rem', color: theme === 'dark' ? '#fbbf24' : '#0f172a' }}>
+                      {cyl.quantity} × {cyl.type} {orderType === 'cylinder' && (cyl.filled === 'filled' ? '(Filled)' : '(Empty)')}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setCylinders(cylinders.filter((_, i) => i !== idx))}
+                      style={{
+                        background: 'none',
+                        color: '#ef4444',
+                        border: 'none',
+                        borderRadius: '0.5rem',
+                        padding: '0.2rem 0.7rem',
+                        fontWeight: 700,
+                        fontSize: '1.2rem',
+                        cursor: 'pointer',
+                        lineHeight: 1
+                      }}
+                      title="Remove cylinder"
+                    >&#10006;</button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Cylinder size and fill option fields removed; now handled by multi-cylinder UI above */}
           {/* New: Service type selection for LPG Gas Refill */}
           {orderType === 'gas' && (
-            <>
+            <div style={{
+              background: theme === 'dark' ? '#18181b' : '#f8fafc',
+              borderRadius: '1.2rem',
+              boxShadow: theme === 'dark' ? '0 2px 8px #23272f' : '0 2px 8px #e5e7eb',
+              padding: '1.5rem 1.2rem',
+              marginBottom: '1.2rem',
+              marginTop: '-0.8rem',
+            }}>
               <div>
                 <label style={{ fontWeight: 600, color: theme === 'dark' ? '#38bdf8' : '#334155', fontSize: '0.7rem' }}>Choose Service Type</label>
                 <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem' }}>
@@ -648,7 +793,7 @@ const Order: React.FC = () => {
                     style={{
                       background: serviceType === 'pickup' ? (theme === 'dark' ? '#38bdf8' : '#0f172a') : (theme === 'dark' ? '#23272f' : '#e5e7eb'),
                       color: serviceType === 'pickup' ? (theme === 'dark' ? '#0f172a' : '#fff') : (theme === 'dark' ? '#fbbf24' : '#334155'),
-                      border: 'none', borderRadius: '1rem', padding: '0.49rem 1.05rem', fontWeight: 600, cursor: 'pointer', fontSize: '0.7rem', transition: 'background 0.2s',
+                      border: 'none', borderRadius: '1rem', padding: '0.49rem 1.05rem', marginBottom: '0.8rem', fontWeight: 600, cursor: 'pointer', fontSize: '0.7rem', transition: 'background 0.2s',
                     }}>Pickup from Home</button>
                 </div>
               </div>
@@ -657,7 +802,7 @@ const Order: React.FC = () => {
                 <div>
                   <label style={{ fontWeight: 600, color: theme === 'dark' ? '#38bdf8' : '#334155', fontSize: '0.7rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
                     Select {serviceType === 'kiosk' ? 'Drop-off' : 'Pickup'} Date
-                    <span style={{ cursor: 'pointer' }} title="More info" onClick={() => setInfoModal({ open: true, text: 'Select when you want us to come over to your house to pick up the empty cylinder.' })}>ℹ️</span>
+                    <span style={{ cursor: 'pointer' }} title="More info" onClick={() => setInfoModal({ open: true, text: 'Select the date you would like us to pick up the cylinder(s) from your home. Please make sure you would be there on that day.' })}>ℹ️</span>
                   </label>
                   <input
                     type="date"
@@ -677,8 +822,11 @@ const Order: React.FC = () => {
                       fontSize: '0.7rem',
                     }}
                   />
-                  <label style={{ fontWeight: 600, color: theme === 'dark' ? '#38bdf8' : '#334155', marginTop: '1rem', display: 'block', fontSize: '0.7rem' }}>Select {serviceType === 'kiosk' ? 'Drop-off' : 'Pickup'} Time</label>
-                  <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem' }}>
+                  <label style={{ fontWeight: 600, color: theme === 'dark' ? '#38bdf8' : '#334155', marginTop: '1rem', display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.7rem' }}>
+                    Select {serviceType === 'kiosk' ? 'Drop-off' : 'Pickup'} Time
+                    <span style={{ cursor: 'pointer' }} title="More info" onClick={() => setInfoModal({ open: true, text: 'Please you should be at home between the selected pick up time.' })}>ℹ️</span>
+                  </label>
+                  <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
                     <button type="button" onClick={() => handleTimeSlotSelect('morning')}
                       style={{
                         background: timeSlot === 'morning' ? (theme === 'dark' ? '#fbbf24' : '#38bdf8') : (theme === 'dark' ? '#23272f' : '#e5e7eb'),
@@ -697,9 +845,9 @@ const Order: React.FC = () => {
               {/* Step 3: Delivery window selection */}
               {serviceType && timeSlot && (
                 <div>
-                  <label style={{ fontWeight: 600, color: theme === 'dark' ? '#38bdf8' : '#334155', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                  <label style={{ fontWeight: 600, fontSize: '0.76rem', color: theme === 'dark' ? '#38bdf8' : '#334155', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
                     Choose Delivery Window
-                    <span style={{ cursor: 'pointer' }} title="More info" onClick={() => setInfoModal({ open: true, text: 'Choose the time range you want us to deliver your filled cylinder to your house. Please make sure you would be at home within the time window.' })}>ℹ️</span>
+                    <span style={{ cursor: 'pointer' }} title="More info" onClick={() => setInfoModal({ open: true, text: 'Please you should be at home between the selected pick up time.' })}>ℹ️</span>
                   </label>
                   <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
                     {timeSlot === 'morning' ? (
@@ -728,7 +876,7 @@ const Order: React.FC = () => {
                   </div>
                 </div>
               )}
-            </>
+            </div>
           )}
           <div>
             <label style={{ fontWeight: 600, color: theme === 'dark' ? '#38bdf8' : '#334155', fontSize: '0.7rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
@@ -775,11 +923,17 @@ const Order: React.FC = () => {
                 >
                   <div style={{ fontWeight: 700, fontSize: '1.1rem', marginBottom: '1.2rem' }}>Explanation</div>
                   <div style={{ fontSize: '1rem', marginBottom: '1.5rem', textAlign: 'left' }}>
-                    <span style={{ color: '#e11d48', fontWeight: 700 }}>My Address:</span>
-                    <span> Select this but make sure you are at the house/home where we would deliver the cylinder and click My Location.</span>
-                    <hr style={{ border: 0, borderTop: '1px solid #e5e7eb', margin: '1.1rem 0' }} />
-                    <span style={{ color: '#e11d48', fontWeight: 700 }}>Different Address:</span>
-                    <span> Select this if you would want us to pickup/deliver at the person's address.</span>
+                    {infoModal.text ? (
+                      <span>{infoModal.text}</span>
+                    ) : (
+                      <>
+                        <span style={{ color: '#e11d48', fontWeight: 700 }}>My Address:</span>
+                        <span> Select this but make sure you are at the house/home where we would deliver the cylinder and click My Location.</span>
+                        <hr style={{ border: 0, borderTop: '1px solid #e5e7eb', margin: '1.1rem 0' }} />
+                        <span style={{ color: '#e11d48', fontWeight: 700 }}>Different Address:</span>
+                        <span> Select this if you would want us to pickup/deliver at the person's address.</span>
+                      </>
+                    )}
                   </div>
                   <button
                     style={{
@@ -1027,21 +1181,69 @@ const Order: React.FC = () => {
               {paymentOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
             </select>
           </div>
-          {/* Total Price (Delivery Fee only for now) */}
-          <div style={{
-            marginTop: '1.5rem',
-            marginBottom: '0.5rem',
-            fontWeight: 700,
-            fontSize: '1.15rem',
-            color: theme === 'dark' ? '#fbbf24' : '#0f172a',
-            textAlign: 'center',
-            background: theme === 'dark' ? '#23272f' : '#f1f5f9',
-            borderRadius: '0.7rem',
-            padding: '0.7rem 0',
-            boxShadow: '0 1px 4px rgba(0,0,0,0.04)'
-          }}>
-            Total Price: {deliveryFee !== null ? `₵${deliveryFee.toFixed(2)}` : 'N/A'}
-          </div>
+          {/* Price breakdown and total */}
+          {(() => {
+            const getCylinderUnitPrice = (cyl: CylinderOrder): number => {
+              if (!cylinderPrices) return 0;
+              if (orderType === 'gas') {
+                return cylinderPrices.refill?.[cyl.type] || 0;
+              } else {
+                // Buy: must have filled/empty
+                return cylinderPrices.buy?.[cyl.type]?.[cyl.filled || 'filled'] || 0;
+              }
+            };
+            const cylinderTotal = cylinders.reduce((sum, cyl) => sum + getCylinderUnitPrice(cyl) * cyl.quantity, 0);
+            const totalPrice = deliveryFee + cylinderTotal;
+
+            // Group cylinders by type and filled (for buy)
+            const breakdownMap = new Map<string, { qty: number, price: number, label: string }>();
+            cylinders.forEach(cyl => {
+              const unitPrice = getCylinderUnitPrice(cyl);
+              const key = orderType === 'gas'
+                ? `${cyl.type}`
+                : `${cyl.type}-${cyl.filled}`;
+              let label = '';
+              if (orderType === 'gas') {
+                label = `${cyl.type} Cylinders`;
+              } else {
+                label = `${cyl.type} (${cyl.filled === 'filled' ? 'Filled' : 'Empty'}) Cylinders`;
+              }
+              if (breakdownMap.has(key)) {
+                const entry = breakdownMap.get(key)!;
+                entry.qty += cyl.quantity;
+                entry.price += unitPrice * cyl.quantity;
+              } else {
+                breakdownMap.set(key, { qty: cyl.quantity, price: unitPrice * cyl.quantity, label });
+              }
+            });
+
+            return (
+              <div style={{
+                marginTop: '1.5rem',
+                marginBottom: '0.5rem',
+                fontWeight: 700,
+                fontSize: '1.15rem',
+                color: theme === 'dark' ? '#fbbf24' : '#0f172a',
+                textAlign: 'center',
+                background: theme === 'dark' ? '#23272f' : '#f1f5f9',
+                borderRadius: '0.7rem',
+                padding: '0.7rem 0',
+                boxShadow: '0 1px 4px rgba(0,0,0,0.04)'
+              }}>
+                <div style={{ fontWeight: 600, fontSize: '1.05rem', marginBottom: 2 }}>Order Summary</div>
+                <div style={{ fontWeight: 400, fontSize: '0.98rem', marginBottom: 2, textAlign: 'left', maxWidth: 320, margin: '0 auto' }}>
+                  {Array.from(breakdownMap.values()).map((entry, idx) => (
+                    <div key={idx} style={{ marginBottom: 2 }}>
+                      {entry.label} ({entry.qty}): ₵{entry.price.toFixed(2)}
+                    </div>
+                  ))}
+                  <div>Delivery Fee: ₵{deliveryFee.toFixed(2)}</div>
+                </div>
+                <div style={{ borderTop: '1px solid #e5e7eb', margin: '0.5rem 0 0.3rem 0' }} />
+                <span style={{ fontWeight: 700, fontSize: '1.18rem' }}>Total: ₵{totalPrice.toFixed(2)}</span>
+              </div>
+            );
+          })()}
           <button
             type="submit"
             style={{
@@ -1051,8 +1253,9 @@ const Order: React.FC = () => {
             }}
             disabled={
               !isLoggedIn ||
-              (orderType === 'gas' && (!cylinder || !serviceType || !timeSlot || !deliveryWindow || !address || !payment)) ||
-              (orderType === 'cylinder' && (!cylinder || !filled || !address || !payment))
+              cylinders.length === 0 ||
+              (orderType === 'gas' && (!serviceType || !timeSlot || !deliveryWindow || !address || !payment)) ||
+              (orderType === 'cylinder' && (!address || !payment))
             }
           >
             {isLoggedIn ? 'Place Order' : 'Log in to Place Order'}
