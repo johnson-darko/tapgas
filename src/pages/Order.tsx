@@ -257,8 +257,12 @@ const Order: React.FC = () => {
   const [notes, setNotes] = useState('');
   // Remove old single-cylinder filled state
 
+  // General form error modal state
+  const [formError, setFormError] = useState<string | null>(null);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setFormError(null);
     if (!isLoggedIn) {
       setShowLogin(true);
       return;
@@ -270,23 +274,32 @@ const Order: React.FC = () => {
     }
     // Enforce at least one cylinder
     if (cylinders.length === 0) {
-      alert('Please add at least one cylinder to your order.');
+      setFormError('Please add at least one cylinder to your order.');
       return;
     }
     // Enforce required fields for LPG Gas Refill
     if (orderType === 'gas') {
       if (!serviceType) {
-        alert('Please select a Service Type.');
+        setFormError('Please select a Service Type.');
         return;
       }
       if (!timeSlot) {
-        alert('Please select a Time Slot.');
+        setFormError('Please select a Time Slot.');
         return;
       }
       if (!deliveryWindow) {
-        alert('Please select a Delivery Window.');
+        setFormError('Please select a Delivery Window.');
         return;
       }
+    }
+    // Enforce required fields for both order types
+    if (!address) {
+      setFormError('Please enter your address.');
+      return;
+    }
+    if (!payment) {
+      setFormError('Please select a payment method.');
+      return;
     }
     setShowFillAnim(true);
     // Build order summary string (matches UI breakdown)
@@ -474,6 +487,53 @@ const Order: React.FC = () => {
     }}>
 
       {/* ...existing code... */}
+      {/* General form error modal */}
+      {formError && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
+          background: 'rgba(0,0,0,0.35)',
+          zIndex: 10001,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}>
+          <div style={{
+            background: theme === 'dark' ? '#23272f' : '#fff',
+            color: theme === 'dark' ? '#fbbf24' : '#e11d48',
+            borderRadius: '1.2rem',
+            boxShadow: '0 4px 24px rgba(0,0,0,0.18)',
+            padding: '2rem 2.5rem',
+            minWidth: '260px',
+            maxWidth: '90vw',
+            fontSize: '1.05rem',
+            position: 'relative',
+            textAlign: 'center',
+          }}>
+            <div style={{ fontWeight: 700, fontSize: '1.15rem', marginBottom: '1.2rem' }}>Order Not Complete</div>
+            <div style={{ marginBottom: '1.2rem' }}>{formError}</div>
+            <button
+              style={{
+                background: theme === 'dark' ? '#38bdf8' : '#0f172a',
+                color: theme === 'dark' ? '#0f172a' : '#fff',
+                border: 'none',
+                borderRadius: '0.7rem',
+                padding: '0.5rem 1.2rem',
+                fontWeight: 600,
+                fontSize: '1rem',
+                cursor: 'pointer',
+                display: 'block',
+                marginLeft: 'auto',
+                marginRight: 'auto',
+              }}
+              onClick={() => setFormError(null)}
+            >OK</button>
+          </div>
+        </div>
+      )}
       {/* Modal for own referral code error */}
       {showOwnReferralModal && (
         <div style={{
@@ -1375,12 +1435,6 @@ const Order: React.FC = () => {
               color: theme === 'dark' ? '#0f172a' : '#fff',
               border: 'none', borderRadius: '2rem', padding: '0.9rem 2.5rem', fontSize: '1.1rem', fontWeight: 700, boxShadow: '0 2px 8px rgba(0,0,0,0.08)', cursor: isLoggedIn ? 'pointer' : 'not-allowed', marginTop: '0.5rem', transition: 'background 0.2s', opacity: isLoggedIn ? 1 : 0.7
             }}
-            disabled={
-              !isLoggedIn ||
-              cylinders.length === 0 ||
-              (orderType === 'gas' && (!serviceType || !timeSlot || !deliveryWindow || !address || !payment)) ||
-              (orderType === 'cylinder' && (!address || !payment))
-            }
           >
             {isLoggedIn ? 'Place Order' : 'Log in to Place Order'}
           </button>
