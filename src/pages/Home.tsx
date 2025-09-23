@@ -289,7 +289,8 @@ const Home: React.FC = () => {
           ? '0 4px 24px rgba(56,189,248,0.10)'
           : '0 4px 24px rgba(0,0,0,0.08)',
         padding: '2.5rem 1.5rem 2rem 1.5rem',
-    marginTop: '-0.5rem',
+  // Use 1.5rem margin top for iOS only, otherwise -0.5rem
+  marginTop: (typeof window !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent)) ? '1.5rem' : '-0.5rem',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',

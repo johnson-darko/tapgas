@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { QRCodeCanvas } from 'qrcode.react';
+import { Receipt } from './Receipt';
+import { QRReceiptPreview } from './QRReceiptPreview';
 
 interface OrderCardProps {
   order: {
@@ -37,7 +38,7 @@ const statusColors: Record<string, string> = {
 const OrderCard: React.FC<OrderCardProps> = ({ order, onCheckUpdate, showCheckUpdate, role }) => {
   const { theme } = useTheme();
   const [showInfo, setShowInfo] = useState(false);
-  const [showQrModal, setShowQrModal] = useState(false);
+  const [showReceiptModal, setShowReceiptModal] = useState(false);
   return (
     <div style={{
       borderRadius: '1.5rem',
@@ -58,7 +59,6 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, onCheckUpdate, showCheckUp
       {/* Left section: details */}
       <div style={{
         flex: 2,
-        padding: '1.5rem 1.2rem',
         display: 'flex',
         flexDirection: 'column',
         gap: '0.6rem',
@@ -212,12 +212,13 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, onCheckUpdate, showCheckUp
             <span role="img" aria-label="code">🔑</span> {order.uniqueCode}
           </div>
         )}
-        <div style={{ marginBottom: '0.7rem', cursor: 'pointer' }} onClick={() => setShowQrModal(true)}>
-          <QRCodeCanvas value={(order.orderId ?? '').toString()} size={80} style={{ filter: 'brightness(1.1)' }} />
-          <div style={{ fontSize: '0.8rem', color: theme === 'dark' ? '#64748b' : '#334155', marginTop: '0.3rem' }}>Scan to confirm pickup</div>
-        </div>
-        {/* QR Modal */}
-        {showQrModal && (
+        {/* Mini QR code preview (clickable) */}
+        <QRReceiptPreview
+          value={String(order.orderId ?? order.id ?? '')}
+          onClick={() => setShowReceiptModal(true)}
+        />
+        {/* Receipt Modal */}
+        {showReceiptModal && (
           <div
             style={{
               position: 'fixed',
@@ -225,43 +226,54 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, onCheckUpdate, showCheckUp
               left: 0,
               width: '100vw',
               height: '100vh',
-              background: 'rgba(0,0,0,0.5)',
+              background: 'rgba(0,0,0,0.35)',
               zIndex: 9999,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
             }}
-            onClick={() => setShowQrModal(false)}
+            onClick={() => setShowReceiptModal(false)}
           >
             <div
               style={{
-                background: '#fff',
+                background: theme === 'dark' ? '#23272f' : '#fff',
+                color: theme === 'dark' ? '#fbbf24' : '#0f172a',
                 borderRadius: '1.2rem',
-                padding: '2.5rem',
-                boxShadow: '0 8px 40px 8px rgba(0,0,0,0.25)',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                border: '2px solid #fbbf24',
+                boxShadow: '0 4px 24px rgba(0,0,0,0.18)',
+                padding: '2.5rem 2.2rem',
+                maxWidth: '90vw',
+                minWidth: '260px',
+                textAlign: 'center',
+                fontWeight: 600,
+                fontSize: '1.1rem',
+                position: 'relative',
               }}
               onClick={e => e.stopPropagation()}
             >
-              <QRCodeCanvas value={(order.orderId ?? '').toString()} size={240} style={{ marginBottom: '1.2rem', filter: 'brightness(2) drop-shadow(0 0 16px #fff)' }} />
+              <Receipt
+                orderId={String(order.orderId ?? order.id ?? '')}
+                cylinders={order.notes && Array.isArray(order.notes) ? order.notes : [
+                  { size: order.cylinderType, status: order.status, quantity: 1 }
+                ]}
+                totalPrice={order.amountPaid ?? 0}
+                deliveredAt={order.status === 'delivered' ? order.date : undefined}
+                status={order.status}
+                showDownload
+              />
               <button
                 style={{
-                  marginTop: '1.2rem',
+                  marginTop: '1.5rem',
                   background: theme === 'dark' ? '#38bdf8' : '#0f172a',
                   color: theme === 'dark' ? '#0f172a' : '#fff',
                   border: 'none',
-                  borderRadius: '0.7rem',
+                  borderRadius: '0.8rem',
                   padding: '0.7rem 1.5rem',
-                  fontWeight: 600,
-                  fontSize: '1.1rem',
+                  fontWeight: 700,
+                  fontSize: '1rem',
                   cursor: 'pointer',
-                  display: 'block',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.10)'
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
                 }}
-                onClick={() => setShowQrModal(false)}
+                onClick={() => setShowReceiptModal(false)}
               >Close</button>
             </div>
           </div>

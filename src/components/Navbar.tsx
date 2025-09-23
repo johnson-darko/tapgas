@@ -105,6 +105,8 @@ import { useTheme } from '../useTheme';
 
 
 const Navbar: React.FC = () => {
+  // Detect iOS device
+  const isIOS = typeof window !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent);
   const { theme, toggleTheme } = useTheme();
   const [offlineMsg, setOfflineMsg] = useState<string | null>(null);
   const referralReward = useReferralReward();
@@ -138,7 +140,9 @@ const Navbar: React.FC = () => {
         : '#fff',
       color: theme === 'dark' ? '#fff' : '#000',
       boxShadow: theme === 'dark' ? '0 1px 4px rgba(56,189,248,0.10)' : '0 1px 4px rgba(0,0,0,0.08)',
-      padding: '0.35rem 0.6rem',
+      padding: isIOS
+        ? 'calc(2.5rem + env(safe-area-inset-top)) 0.6rem 0.35rem 0.6rem'
+        : '0.35rem 0.6rem',
       display: 'flex',
       flexDirection: 'row',
       alignItems: 'center',

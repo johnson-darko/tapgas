@@ -143,7 +143,12 @@ const App: React.FC = () => {
           flexDirection: 'column',
           transition: 'background 0.3s',
         }}>
-          <Navbar />
+          {/* Add safe area padding for iOS status bar */}
+          <div style={{
+            paddingTop: 'env(safe-area-inset-top)'
+          }}>
+            <Navbar />
+          </div>
           <div style={{
             flex: 1,
             width: '100%',
