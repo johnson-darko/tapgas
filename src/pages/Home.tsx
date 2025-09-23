@@ -326,7 +326,7 @@ const Home: React.FC = () => {
             onMouseOver={e => e.currentTarget.style.background = theme === 'dark' ? '#0f172a' : '#38bdf8'}
             onMouseOut={e => e.currentTarget.style.background = theme === 'dark' ? '#38bdf8' : '#0f172a'}
             onClick={() => navigate('/order')}
-          >Fill My Cylinder</button>
+          >Request</button>
           {/* <button
             style={{
               background: theme === 'dark' ? '#fbbf24' : '#38bdf8',
@@ -495,7 +495,7 @@ const Home: React.FC = () => {
                     marginTop: '0.5rem',
                   }}
                   onClick={() => navigate('/order')}
-                >Fill My Cylinder</button>
+                >Request</button>
               </div>
             )}
         </div>
