@@ -45,5 +45,15 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+
+	<!-- Location Permissions -->
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>This app needs your location to show nearby LPG stations and deliver your order.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>This app needs your location to show nearby LPG stations and deliver your order.</string>
+
+	<!-- Local Notification Permission -->
+	<key>NSUserNotificationUsageDescription</key>
+	<string>This app uses notifications to update you about your order status.</string>
 </dict>
 </plist>
