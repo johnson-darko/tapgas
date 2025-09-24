@@ -29,14 +29,8 @@ export const Receipt: React.FC<ReceiptProps & { small?: boolean; showDownload?: 
 }) => {
   const receiptRef = useRef<HTMLDivElement>(null);
 
-  const handleDownload = async () => {
-    if (!receiptRef.current) return;
-    const html2canvas = (await import('html2canvas')).default;
-    const canvas = await html2canvas(receiptRef.current, { backgroundColor: '#fff', scale: 2 });
-    const link = document.createElement('a');
-    link.download = 'TapGas-Receipt.png';
-    link.href = canvas.toDataURL('image/png');
-    link.click();
+  const handleDownload = () => {
+    window.print();
   };
 
   return (
@@ -88,19 +82,7 @@ export const Receipt: React.FC<ReceiptProps & { small?: boolean; showDownload?: 
               alt="GASMAN Logo"
               style={{ width: small ? 24 : 64, height: small ? 24 : 64, borderRadius: '1rem', boxShadow: '0 2px 8px #e5e7eb' }}
             />
-            {!small && (
-              <div
-                style={{
-                  fontWeight: 900,
-                  fontSize: '1.45rem',
-                  color: '#38bdf8',
-                  letterSpacing: '0.03em',
-                  marginLeft: '0.7rem',
-                }}
-              >
-                TapGas
-              </div>
-            )}
+    
           </div>
           {!small && (
             <div style={{ textAlign: 'right', marginLeft: '1.5rem', flex: 1 }}>
@@ -199,7 +181,7 @@ export const Receipt: React.FC<ReceiptProps & { small?: boolean; showDownload?: 
         </div>
       </div>
       {showDownload && !small && (
-        <button
+         <button
           onClick={handleDownload}
           style={{
             marginTop: '1.5rem',
@@ -214,8 +196,8 @@ export const Receipt: React.FC<ReceiptProps & { small?: boolean; showDownload?: 
             boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
           }}
         >
-          Download Receipt
-        </button>
+         {/* Download Receipt */}
+        </button> 
       )}
     </div>
   );

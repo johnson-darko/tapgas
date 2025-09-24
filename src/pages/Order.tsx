@@ -3,14 +3,14 @@
 // You can later move these to a config file or .env if needed.
 
 // --- DELIVERY FEE CONFIGURATION ---
-// 0-20km: ₵5 flat. Every km above 20km: ₵0.7 per km extra (rounded up to next cedi if decimal)
-const DELIVERY_BASE_FEE = 5; // Flat fee for 0-20km (in cedis)
-const DELIVERY_PER_KM_RATE = 0.7; // Per-km rate above 20km (in cedis)
+// 0-0.20km: ₵5 flat. Every km above 0.20km: ₵0.7 per km extra (rounded up to next cedi if decimal)
+const DELIVERY_BASE_FEE = 5; // Flat fee for 0-0.20km (in cedis)
+const DELIVERY_PER_KM_RATE = 0.7; // Per-km rate above 0.20km (in cedis)
 
 
 /**
  * Calculates the delivery fee based on distance (in kilometers).
- * 0-20km: ₵5 flat. Every km above 20km: ₵0.7 per km extra (rounded up to next cedi if decimal)
+ * 0-0.20km: ₵5 flat. Every km above 0.20km: ₵0.7 per km extra (rounded up to next cedi if decimal)
  * @param {number} distanceKm - The straight-line distance in kilometers.
  * @returns {number} - The calculated delivery fee in cedis (₵)
  */
@@ -97,7 +97,83 @@ const paymentOptions = [
 const Order: React.FC = () => {
   // Delivery fee and distance state (must be defined here for use in render)
   const [deliveryFee, setDeliveryFee] = useState<number>(DELIVERY_BASE_FEE);
-  const [distanceToStation] = useState<number | null>(null);
+  // (removed unused distanceToStation state)
+  // Store the nearest station and its distance for use in summary, fee, and map
+  const [nearestStation, setNearestStation] = useState<LpgStation | null>(null);
+  const [orderDistance, setOrderDistance] = useState<number | null>(null);
+  // Address state (string only, single declaration)
+  const [address, setAddress] = useState('');
+
+  // ...existing code...
+
+  // Load LPG stations (declare only once)
+  const { stations: lpgStations } = useLpgStations();
+
+  // Calculate orderDistance and nearestStation whenever address or lpgStations changes
+  useEffect(() => {
+    if (address && lpgStations.length > 0) {
+      let userLat: number | null = null;
+      let userLng: number | null = null;
+      const match = address.match(/^Lat: (-?\d+\.?\d*), Lng: (-?\d+\.?\d*)$/);
+      if (match) {
+        userLat = parseFloat(match[1]);
+        userLng = parseFloat(match[2]);
+      } else {
+        try {
+          const addrObj = JSON.parse(address);
+          if (addrObj.lat && addrObj.lng) {
+            userLat = Number(addrObj.lat);
+            userLng = Number(addrObj.lng);
+          }
+        } catch {
+          // ignore parse error
+        }
+      }
+      if (userLat !== null && userLng !== null) {
+        let minDistance = Infinity;
+        let nearest: LpgStation | null = null;
+        lpgStations.forEach((station) => {
+          const d = haversineDistance(userLat, userLng, station.lat, station.lng);
+          if (d < minDistance) {
+            minDistance = d;
+            nearest = station;
+          }
+        });
+        setOrderDistance(minDistance);
+        setNearestStation(nearest);
+      } else {
+        setOrderDistance(null);
+        setNearestStation(null);
+      }
+    } else {
+      setOrderDistance(null);
+      setNearestStation(null);
+    }
+  }, [address, lpgStations]);
+
+  // ...existing code...
+
+  // Haversine formula to calculate distance between two lat/lng points in km
+  function haversineDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
+    const toRad = (x: number) => x * Math.PI / 180;
+    const R = 6371; // Earth radius in km
+    const dLat = toRad(lat2 - lat1);
+    const dLng = toRad(lng2 - lng1);
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+      Math.sin(dLng / 2) * Math.sin(dLng / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  }
+
+  // ...existing code...
+
+
+  // ...existing code...
+
+  // Place this after address and lpgStations are declared
+  // (after line 291)
+
 
 
   // Cylinder prices state
@@ -118,17 +194,18 @@ const Order: React.FC = () => {
       });
   }, []);
 
-  // Update delivery fee when distance changes
+  // (Removed duplicate/old useEffect for address distance calculation)
+
+  // Update delivery fee when orderDistance changes
   useEffect(() => {
-    if (distanceToStation !== null && !isNaN(distanceToStation)) {
-      setDeliveryFee(calculateDeliveryFee(distanceToStation));
+    if (orderDistance !== null && !isNaN(orderDistance)) {
+      setDeliveryFee(calculateDeliveryFee(orderDistance));
     } else {
       setDeliveryFee(DELIVERY_BASE_FEE);
     }
-  }, [distanceToStation]);
+  }, [orderDistance]);
 
-  // Load LPG stations
-  const { stations: lpgStations } = useLpgStations();
+  // (removed duplicate)
   // Referral code input state
   const [referralCode, setReferralCode] = useState('');
   // Track if user has already been referred (from profile/localStorage)
@@ -244,7 +321,7 @@ const Order: React.FC = () => {
     setDeliveryWindow(null);
   }
   const [deliveryWindow, setDeliveryWindow] = useState<'sameDayEvening' | 'nextMorning' | 'nextEvening' | null>(null);
-  const [address, setAddress] = useState('');
+  // (removed duplicate)
   // Address mode: 'my' or 'other'
   const [addressMode, setAddressMode] = useState<'my' | 'other'>('my');
   const [otherAddresses, setOtherAddresses] = useState<OtherAddress[]>(() => getOtherAddresses());
@@ -1143,6 +1220,7 @@ const Order: React.FC = () => {
                   setAddressMode('my');
                   setSelectedOtherIdx(-1);
                   setNotes('');
+                  console.log('setAddress (clear):', '');
                   setAddress('');
                 }} /> My Address
               </label>
@@ -1151,6 +1229,7 @@ const Order: React.FC = () => {
                   setAddressMode('other');
                   setOtherAddresses(getOtherAddresses());
                   setSelectedOtherIdx(-1);
+                  console.log('setAddress (clear):', '');
                   setAddress('');
                   setNotes('');
                 }} /> Different Address
@@ -1175,7 +1254,9 @@ const Order: React.FC = () => {
                         await Geolocation.requestPermissions();
                         const pos = await Geolocation.getCurrentPosition();
                         const { latitude, longitude } = pos.coords;
-                        setAddress(`Lat: ${latitude.toFixed(5)}, Lng: ${longitude.toFixed(5)}`);
+                        const newAddr = `Lat: ${latitude.toFixed(5)}, Lng: ${longitude.toFixed(5)}`;
+                        console.log('setAddress (native):', newAddr);
+                        setAddress(newAddr);
                         setLocating(false);
                       } catch {
                         alert('Unable to get location. Please type your address.');
@@ -1185,7 +1266,9 @@ const Order: React.FC = () => {
                       navigator.geolocation.getCurrentPosition(
                         pos => {
                           const { latitude, longitude } = pos.coords;
-                          setAddress(`Lat: ${latitude.toFixed(5)}, Lng: ${longitude.toFixed(5)}`);
+                          const newAddr = `Lat: ${latitude.toFixed(5)}, Lng: ${longitude.toFixed(5)}`;
+                          console.log('setAddress (browser):', newAddr);
+                          setAddress(newAddr);
                           setLocating(false);
                         },
                         () => {
@@ -1221,7 +1304,9 @@ const Order: React.FC = () => {
                         const idx = parseInt(e.target.value, 10);
                         setSelectedOtherIdx(idx);
                         const addr = otherAddresses[idx];
-                        setAddress(`Lat: ${addr.lat}, Lng: ${addr.lng}`);
+                        const newAddr = `Lat: ${addr.lat}, Lng: ${addr.lng}`;
+                        console.log('setAddress (other):', newAddr);
+                        setAddress(newAddr);
                         setNotes(`Please deliver to ${addr.name} (${addr.phone})`);
                       }}
                       required
@@ -1401,6 +1486,8 @@ const Order: React.FC = () => {
               }
             });
 
+            // Debug log for delivery fee and distance
+            console.log('Order Summary Debug:', { orderDistance, deliveryFee });
             return (
               <div style={{
                 marginTop: '1.5rem',
@@ -1421,7 +1508,7 @@ const Order: React.FC = () => {
                       {entry.label} ({entry.qty}): ₵{entry.price.toFixed(2)}
                     </div>
                   ))}
-                  <div>Delivery Fee: ₵{deliveryFee.toFixed(2)}</div>
+                  <div>Delivery Fee: ₵{deliveryFee.toFixed(2)}{orderDistance !== null && nearestStation ? `  (Nearest: ${nearestStation.name} - ${orderDistance.toFixed(2)} km)` : ''}</div>
                 </div>
                 <div style={{ borderTop: '1px solid #e5e7eb', margin: '0.5rem 0 0.3rem 0' }} />
                 <span style={{ fontWeight: 700, fontSize: '1.18rem' }}>Total: ₵{totalPrice.toFixed(2)}</span>
