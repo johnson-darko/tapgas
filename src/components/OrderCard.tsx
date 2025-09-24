@@ -39,6 +39,7 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, onCheckUpdate, showCheckUp
   const { theme } = useTheme();
   const [showInfo, setShowInfo] = useState(false);
   const [showReceiptModal, setShowReceiptModal] = useState(false);
+  const [showPaymentInfo, setShowPaymentInfo] = useState(false);
   return (
     <div style={{
       borderRadius: '1.5rem',
@@ -76,7 +77,7 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, onCheckUpdate, showCheckUp
             />
           </div>
         )}
-        <div style={{ fontWeight: 800, fontSize: '1.2rem', color: theme === 'dark' ? '#38bdf8' : '#0f172a', letterSpacing: '-1px', marginBottom: '0.2rem', display: 'flex', alignItems: 'center', gap: 6 }}>
+        <div style={{ fontWeight: 750, fontSize: '0.9rem', color: theme === 'dark' ? '#38bdf8' : '#0f172a', letterSpacing: '-1px', marginBottom: '0.2rem', display: 'flex', alignItems: 'center', gap: 6 }}>
           <span role="img" aria-label="cylinder"></span> {order.cylinderType}
         </div>
         {/* Removed Customer name display as requested */}
@@ -92,9 +93,83 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, onCheckUpdate, showCheckUp
             {order.date ? new Date(order.date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : ''}
           </span>
         </div>
-        <div style={{ fontSize: '0.98rem' }}>
-          Amount Paid: <span style={{ fontWeight: 700, color: theme === 'dark' ? '#fbbf24' : '#22c55e' }}>Not yet</span>
+        <div style={{ fontSize: '0.98rem', display: 'flex', alignItems: 'center', gap: 6 }}>
+        Amount to Pay:<span style={{ fontWeight: 700, fontSize: '0.55rem', color: theme === 'dark' ? '#fbbf24' : '#22c55e' }}>Click on 👉</span>
+          <span
+            title="Payment info"
+            style={{ cursor: 'pointer', fontSize: '1.1em', color: theme === 'dark' ? '#fbbf24' : '#0f172a', verticalAlign: 'middle' }}
+            onClick={() => setShowPaymentInfo(true)}
+          >💡</span>
         </div>
+        {showPaymentInfo && (
+          <div
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              width: '100vw',
+              height: '100vh',
+              background: 'rgba(0,0,0,0.35)',
+              zIndex: 9999,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+            onClick={() => setShowPaymentInfo(false)}
+          >
+            <div
+              style={{
+                background: theme === 'dark' ? '#23232b' : '#fff',
+                color: theme === 'dark' ? '#fbbf24' : '#0f172a',
+                borderRadius: '1.2rem',
+                boxShadow: '0 4px 24px rgba(0,0,0,0.18)',
+                padding: '2rem 2.5rem',
+                minWidth: '260px',
+                maxWidth: '90vw',
+                fontSize: '1.05rem',
+                position: 'relative',
+                textAlign: 'center',
+              }}
+              onClick={e => e.stopPropagation()}
+            >
+              <div style={{ fontWeight: 700, fontSize: '1.15rem', marginBottom: '1.2rem' }}>Payment Reminder</div>
+              <div style={{ marginBottom: 16 }}>If you have not paid yet, please pay the total amount via Mobile Money to <b>number xxxx4334</b>.</div>
+              <div style={{ marginBottom: 16 }}>Use your <b>Order ID</b> as the payment reference.</div>
+              <div style={{ margin: '16px 0', fontSize: 18 }}>
+                <div><b>Order ID:</b> {order.orderId ?? order.id ?? ''}</div>
+                <div><b>Amount:</b> ₵{
+                  (() => {
+                    if (order.notes && typeof order.notes === 'string') {
+                      const match = order.notes.match(/Total: ₵([\d.]+)/);
+                      return match && match[1] ? match[1] : '';
+                    }
+                    return '';
+                  })()
+                }</div>
+                <div style={{ color: '#e11d48', fontSize: '0.85em', marginTop: 4 }}>
+                  <b>Order won't be processed if payment is not received.</b>
+                </div>
+              </div>
+              <button
+                style={{
+                  marginTop: '1.5rem',
+                  background: theme === 'dark' ? '#38bdf8' : '#0f172a',
+                  color: theme === 'dark' ? '#0f172a' : '#fff',
+                  border: 'none',
+                  borderRadius: '0.7rem',
+                  padding: '0.5rem 1.2rem',
+                  fontWeight: 600,
+                  fontSize: '1rem',
+                  cursor: 'pointer',
+                  display: 'block',
+                  marginLeft: 'auto',
+                  marginRight: 'auto',
+                }}
+                onClick={() => setShowPaymentInfo(false)}
+              >Close</button>
+            </div>
+          </div>
+        )}
         {/* Always show info icon for order details */}
         <div style={{ marginTop: '0.2rem', display: 'flex', justifyContent: 'center' }}>
           <span

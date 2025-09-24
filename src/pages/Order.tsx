@@ -25,6 +25,7 @@ function calculateDeliveryFee(distanceKm: number): number {
   }
 }
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, CircleMarker } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -330,7 +331,11 @@ const Order: React.FC = () => {
   const [payment, setPayment] = useState('cash');
   const [showFillAnim, setShowFillAnim] = useState(false);
   const [success, setSuccess] = useState(false);
-  const navigate = (path: string) => { window.location.hash = path; };
+  const navigate = useNavigate();
+  // Payment modal state
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [lastOrderId, setLastOrderId] = useState<string | null>(null);
+  const [lastOrderAmount, setLastOrderAmount] = useState<number | null>(null);
   const [notes, setNotes] = useState('');
   // Remove old single-cylinder filled state
 
@@ -474,12 +479,12 @@ const Order: React.FC = () => {
     };
     console.log('[Order] JWT from localStorage:', token);
     console.log('[Order] Headers for fetch:', headers);
-    fetch(`${import.meta.env.VITE_API_BASE || ''}/order`, {
+  fetch(`${import.meta.env.VITE_API_BASE || ''}/order`, {
       method: 'POST',
       headers,
       body: JSON.stringify(newOrder),
     })
-      .then(async res => {
+  .then(async res => {
         let data;
         try {
           data = await res.json();
@@ -503,7 +508,7 @@ const Order: React.FC = () => {
           setShowFillAnim(false);
           throw new Error('Failed to save order in cloud');
         }
-        if (data && data.success && data.order) {
+  if (data && data.success && data.order) {
           console.log('Backend order response:', data.order);
           // Remove any local temp order with the same uniqueCode or a numeric orderId (temp)
           const orders = getOrders().filter((o: OrderType) => {
@@ -535,12 +540,58 @@ const Order: React.FC = () => {
 
           // Schedule local notification in 2 minutes (Capacitor or browser)
           scheduleOrderReminderNotification(2 * 60 * 1000);
+          // Show payment modal for Mobile Money orders
+          if (payment === 'momo') {
+            // Use real order ID and total from backend response, fallback to local if missing
+            const realOrderId = data.order.order_id || data.order.orderId || data.order.uniqueCode || data.order.id || '';
+            // Try to get the total price from backend, fallback to local calculation
+            let realTotal = 0;
+            if (typeof data.order.total === 'number') {
+              realTotal = data.order.total;
+            } else if (typeof data.order.amount === 'number') {
+              realTotal = data.order.amount;
+            } else if (typeof data.order.amountPaid === 'number') {
+              realTotal = data.order.amountPaid;
+            } else if (typeof data.order.price === 'number') {
+              realTotal = data.order.price;
+            } else {
+              // Fallback: recalculate from local state
+              type CylinderOrder = { type: string; quantity: number; filled?: 'filled' | 'empty' };
+              const getCylinderUnitPrice = (cyl: CylinderOrder): number => {
+                if (!cylinderPrices) return 0;
+                if (orderType === 'gas') {
+                  const refill = cylinderPrices.refill as Record<string, number> | undefined;
+                  const price = refill && typeof refill[cyl.type] === 'number' ? refill[cyl.type] : 0;
+                  return price;
+                } else {
+                  const buy = cylinderPrices.buy as Record<string, Record<string, number>> | undefined;
+                  const price = buy && buy[cyl.type] && typeof buy[cyl.type][cyl.filled || 'filled'] === 'number' ? buy[cyl.type][cyl.filled || 'filled'] : 0;
+                  return price;
+                }
+              };
+              const cylinderTotal = cylinders.reduce((sum, cyl) => sum + getCylinderUnitPrice(cyl) * cyl.quantity, 0);
+              realTotal = deliveryFee + cylinderTotal;
+            }
+            setLastOrderId(realOrderId);
+            setLastOrderAmount(realTotal);
+            setShowPaymentModal(true);
+          } else {
+            setShowFillAnim(false);
+            setSuccess(true);
+            setTimeout(() => {
+              setTimeout(() => {
+                sessionStorage.setItem('tapgas_auto_check_order', '1');
+                window.dispatchEvent(new Event('tapgas-orders-updated'));
+                navigate('/track');
+              }, 5000);
+            }, 1200);
+          }
+          return;
         }
         setShowFillAnim(false);
         setSuccess(true);
         setTimeout(() => {
           setTimeout(() => {
-            // Set a sessionStorage flag to trigger auto-check on Home
             sessionStorage.setItem('tapgas_auto_check_order', '1');
             window.dispatchEvent(new Event('tapgas-orders-updated'));
             navigate('/track');
@@ -1555,6 +1606,37 @@ const Order: React.FC = () => {
           </div>
         )}
       </div>
+      {/* Payment Instructions Modal for Mobile Money */}
+      {showPaymentModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.5)', zIndex: 20000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ background: '#fff', borderRadius: 12, padding: 32, maxWidth: 400, width: '90%', textAlign: 'center', boxShadow: '0 2px 16px rgba(0,0,0,0.2)' }}>
+            <h2 style={{ marginBottom: 16 }}>Payment Instructions</h2>
+            <p style={{ marginBottom: 16 }}>Please pay the total amount via Mobile Money to <b>number xxxx4334</b>.</p>
+            <p style={{ marginBottom: 16 }}>Use your <b>Order ID</b> as the payment reference.</p>
+            <div style={{ margin: '16px 0', fontSize: 18 }}>
+              <div><b>Order ID:</b> {lastOrderId || ''}</div>
+              <div><b>Amount:</b> ₵{lastOrderAmount != null ? lastOrderAmount : ''}</div>
+            </div>
+            <button
+              style={{ marginTop: 24, padding: '10px 24px', background: '#007bff', color: '#fff', border: 'none', borderRadius: 4, fontSize: 16, cursor: 'pointer' }}
+              onClick={() => {
+                setShowPaymentModal(false);
+                setShowFillAnim(false);
+                setSuccess(true);
+                setTimeout(() => {
+                  setTimeout(() => {
+                    sessionStorage.setItem('tapgas_auto_check_order', '1');
+                    window.dispatchEvent(new Event('tapgas-orders-updated'));
+                    navigate('/track');
+                  }, 5000);
+                }, 1200);
+              }}
+            >
+              Done
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
