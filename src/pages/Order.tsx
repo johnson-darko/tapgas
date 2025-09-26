@@ -246,8 +246,8 @@ const Order: React.FC = () => {
   };
   const [cylinders, setCylinders] = useState<CylinderOrder[]>([]);
   // Temp state for adding a cylinder
-  const [newCylinderType, setNewCylinderType] = useState('3kg');
-  const [newCylinderQty, setNewCylinderQty] = useState(1);
+  const [newCylinderType, setNewCylinderType] = useState('');
+  const [newCylinderQty, setNewCylinderQty] = useState<number | null>(null);
   const [newCylinderFilled, setNewCylinderFilled] = useState<'filled' | 'empty'>('filled');
   // New: Service type for LPG refill
   const [serviceType, setServiceType] = useState<'kiosk' | 'pickup' | null>(null);
@@ -922,6 +922,7 @@ const Order: React.FC = () => {
                       transition: 'background 0.2s, color 0.2s, border 0.2s, box-shadow 0.2s',
                       userSelect: 'none',
                       boxShadow: newCylinderType === opt.value ? '0 0 0 3px #38bdf8aa' : 'none',
+                      opacity: newCylinderType === '' ? 0.7 : 1,
                     }}>
                       <input
                         type="radio"
@@ -961,6 +962,7 @@ const Order: React.FC = () => {
                       transition: 'background 0.2s, color 0.2s, border 0.2s, box-shadow 0.2s',
                       userSelect: 'none',
                       boxShadow: newCylinderQty === num ? '0 0 0 3px #38bdf8aa' : 'none',
+                      opacity: newCylinderQty === null ? 0.7 : 1,
                     }}>
                       <input
                         type="radio"
@@ -996,25 +998,28 @@ const Order: React.FC = () => {
               <button
                 type="button"
                 onClick={() => {
+                  if (!newCylinderType || !newCylinderQty) return;
                   setCylinders([...cylinders, {
                     type: newCylinderType,
                     quantity: newCylinderQty,
                     ...(orderType === 'cylinder' ? { filled: newCylinderFilled } : {})
                   }]);
-                  setNewCylinderQty(1);
+                  setNewCylinderType('');
+                  setNewCylinderQty(null);
                 }}
                 style={{
-                  background: '#22c55e',
+                  background: (!newCylinderType || !newCylinderQty) ? '#a1a1aa' : '#22c55e',
                   color: '#fff',
                   border: 'none',
                   borderRadius: '0.5rem',
                   padding: '0.5rem 1.5rem',
                   fontWeight: 700,
                   fontSize: '1rem',
-                  cursor: 'pointer',
+                  cursor: (!newCylinderType || !newCylinderQty) ? 'not-allowed' : 'pointer',
                   marginTop: 18
                 }}
                 title="Add cylinder to order"
+                disabled={!newCylinderType || !newCylinderQty}
               >Add</button>
             </div>
             {/* List of added cylinders */}
