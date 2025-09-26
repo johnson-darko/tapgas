@@ -376,7 +376,7 @@ const Order: React.FC = () => {
     }
     // Enforce required fields for both order types
     if (!address) {
-      setFormError('Please enter your address.');
+      setFormError('Please include an address.');
       return;
     }
     if (!payment) {
@@ -888,10 +888,10 @@ const Order: React.FC = () => {
           {/* --- Cylinder Selection UI (moved inside form) --- */}
           <div style={{ margin: '0 0 1.2rem 0', padding: '1.2rem', background: theme === 'dark' ? '#23272f' : '#f8fafc', borderRadius: '1.2rem', boxShadow: theme === 'dark' ? '0 2px 8px #18181b' : '0 2px 8px #e5e7eb' }}>
             <h3 style={{ fontSize: '0.79rem', fontWeight: 700, marginBottom: '0.5rem', color: theme === 'dark' ? '#fbbf24' : '#0f172a', letterSpacing: '0.01em' }}>
-              Add Cylinder(s) to Order
+              Add Cylinder(s) & Quantity to Order
             </h3>
             <div style={{ color: '#64748b', fontSize: '0.93rem', marginBottom: '1.1rem' }}>
-              Select the cylinder type, quantity, and (if buying) whether you want it filled or empty. Click <b>Add</b> for each cylinder you want to include in this order.
+              Select the cylinder type, quantity, or (if buying New Gas Cylinder) whether you want it filled or empty. Click <b>Add</b> for each cylinder you want to include in this order.
             </div>
             <div style={{
               display: 'flex',
@@ -906,17 +906,83 @@ const Order: React.FC = () => {
             }}>
               <div style={{ display: 'flex', flexDirection: 'column', minWidth: 110 }}>
                 <label style={{ fontSize: '0.75rem', color: '#64748b', marginBottom: 2 }}>Cylinder type</label>
-                <select value={newCylinderType} onChange={e => setNewCylinderType(e.target.value)} style={{ padding: '0.4rem', borderRadius: '0.5rem', border: '1px solid #e5e7eb', fontSize: '1rem' }}>
-                  {cylinderOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-                </select>
+                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  {cylinderOptions.map(opt => (
+                    <label key={opt.value} style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      background: newCylinderType === opt.value ? (theme === 'dark' ? '#38bdf8' : '#0f172a') : (theme === 'dark' ? '#23272f' : '#e5e7eb'),
+                      color: newCylinderType === opt.value ? (theme === 'dark' ? '#0f172a' : '#fff') : (theme === 'dark' ? '#fbbf24' : '#334155'),
+                      borderRadius: '999px',
+                      padding: '0.3rem 1rem',
+                      fontWeight: 600,
+                      fontSize: '0.65rem',
+                      cursor: 'pointer',
+                      border: newCylinderType === opt.value ? '2px solid #38bdf8' : '1px solid #e5e7eb',
+                      transition: 'background 0.2s, color 0.2s, border 0.2s, box-shadow 0.2s',
+                      userSelect: 'none',
+                      boxShadow: newCylinderType === opt.value ? '0 0 0 3px #38bdf8aa' : 'none',
+                    }}>
+                      <input
+                        type="radio"
+                        name="cylinderType"
+                        value={opt.value}
+                        checked={newCylinderType === opt.value}
+                        onChange={() => setNewCylinderType(opt.value)}
+                        style={{
+                          position: 'absolute',
+                          opacity: 0,
+                          width: 0,
+                          height: 0,
+                          margin: 0,
+                          pointerEvents: 'none',
+                        }}
+                      />
+                      {opt.label}
+                    </label>
+                  ))}
+                </div>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', minWidth: 80 }}>
                 <label style={{ fontSize: '0.75rem', color: '#64748b', marginBottom: 2 }}>Quantity</label>
-                <select value={newCylinderQty} onChange={e => setNewCylinderQty(Number(e.target.value))} style={{ width: 70, padding: '0.4rem', borderRadius: '0.5rem', border: '1px solid #e5e7eb', fontSize: '1rem' }}>
+                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                   {Array.from({ length: 5 }, (_, i) => i + 1).map(num => (
-                    <option key={num} value={num}>{num}</option>
+                    <label key={num} style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      background: newCylinderQty === num ? (theme === 'dark' ? '#38bdf8' : '#0f172a') : (theme === 'dark' ? '#23272f' : '#e5e7eb'),
+                      color: newCylinderQty === num ? (theme === 'dark' ? '#0f172a' : '#fff') : (theme === 'dark' ? '#fbbf24' : '#334155'),
+                      borderRadius: '999px',
+                      padding: '0.3rem 1rem',
+                      fontWeight: 600,
+                      fontSize: '0.65rem',
+                      cursor: 'pointer',
+                      border: newCylinderQty === num ? '2px solid #38bdf8' : '1px solid #e5e7eb',
+                      transition: 'background 0.2s, color 0.2s, border 0.2s, box-shadow 0.2s',
+                      userSelect: 'none',
+                      boxShadow: newCylinderQty === num ? '0 0 0 3px #38bdf8aa' : 'none',
+                    }}>
+                      <input
+                        type="radio"
+                        name="cylinderQty"
+                        value={num}
+                        checked={newCylinderQty === num}
+                        onChange={() => setNewCylinderQty(num)}
+                        style={{
+                          position: 'absolute',
+                          opacity: 0,
+                          width: 0,
+                          height: 0,
+                          margin: 0,
+                          pointerEvents: 'none',
+                        }}
+                      />
+                      {num}
+                    </label>
                   ))}
-                </select>
+                </div>
+            {/* Horizontal divider between type and quantity */}
+            <div style={{ width: '100%', borderBottom: `1.5px solid ${theme === 'dark' ? '#334155' : '#cbd5e1'}`, margin: '1.1rem 0' }} />
               </div>
               {orderType === 'cylinder' && (
                 <div style={{ display: 'flex', flexDirection: 'column', minWidth: 100 }}>
@@ -1105,7 +1171,15 @@ const Order: React.FC = () => {
                     style={{
                       background: serviceType === 'pickup' ? (theme === 'dark' ? '#38bdf8' : '#0f172a') : (theme === 'dark' ? '#23272f' : '#e5e7eb'),
                       color: serviceType === 'pickup' ? (theme === 'dark' ? '#0f172a' : '#fff') : (theme === 'dark' ? '#fbbf24' : '#334155'),
-                      border: 'none', borderRadius: '1rem', padding: '0.49rem 1.05rem', marginBottom: '0.8rem', fontWeight: 600, cursor: 'pointer', fontSize: '0.7rem', transition: 'background 0.2s',
+                      border: 'none',
+                      borderRadius: '1rem',
+                      padding: '0.49rem 1.05rem',
+                      marginBottom: '0.8rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      fontSize: '0.7rem',
+                      transition: 'background 0.2s, box-shadow 0.2s',
+                      boxShadow: serviceType === 'pickup' ? '0 0 0 3px #38bdf8aa' : 'none',
                     }}>Pickup from Home</button>
                 </div>
               </div>
